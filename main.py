@@ -15,11 +15,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Load environment
-try:
-    load_dotenv()
-    TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-except:
-    TOKEN = "8680731216:AAF384UUlQlvmsrEQ2hm2VxLaaxE9YyUjfI"
+load_dotenv()
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+
+if not TOKEN:
+    print("❌ Ошибка: TELEGRAM_BOT_TOKEN не найден в переменных окружения!")
+    print("🔧 Добавь токен в Secrets на Replit или в .env файл")
+    exit(1)
 
 class SimpleRaidBot:
     def __init__(self, token):
