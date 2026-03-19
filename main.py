@@ -227,6 +227,8 @@ class SimpleRaidBot:
         self.dp.message_handler(lambda msg: msg.text == "Тренировки")(self.workout_menu)
         self.dp.message_handler(lambda msg: msg.text == "Английский")(self.english_menu)
         self.dp.message_handler(lambda msg: msg.text in ["Статус", "📊 Статус"])(self.stats_command)
+        self.dp.message_handler(lambda msg: msg.text == "🍽️ Питание")(self.nutrition_menu)
+        self.dp.message_handler(lambda msg: msg.text == "🏠 Главное меню")(self.main_menu)
         
         # Handle weight input
         self.dp.message_handler(lambda msg: self.is_weight_input(msg.text))(self.handle_weight_input)
@@ -452,13 +454,16 @@ class SimpleRaidBot:
         }
     
     def get_main_keyboard(self):
-        return ReplyKeyboardMarkup(
+        """Get main menu keyboard"""
+        keyboard = ReplyKeyboardMarkup(
             keyboard=[
-                ["Квесты", "Тренировки"],
-                ["Английский", "Статус"]
+                ["📊 Статус", "Квесты"],
+                ["Тренировки", "Английский"],
+                ["🍽️ Питание", "🏠 Главное меню"]
             ],
             resize_keyboard=True
         )
+        return keyboard
     
     async def main_menu(self, message: types.Message):
         try:
