@@ -16,6 +16,7 @@ import os
 from dotenv import load_dotenv
 import json
 import random
+import openai  # Добавляем OpenAI для ИИ-интеграции
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
 # Load environment
 load_dotenv()
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "sk-abcdef1234567890abcdef1234567890abcdef12")  # API ключ для ИИ-интеграции
 
 if not TOKEN:
     print("❌ Ошибка: TELEGRAM_BOT_TOKEN не найден в переменных окружения!")
@@ -1196,113 +1198,124 @@ E → D → C → B → A → S
             ],
         }
 
-    def generate_english_tasks(self, english_level: str):
-        """Generate daily English tasks based on user level"""
-        tasks = []
+    def generate_english_tasks(self, english_level: str, user_id: int):
+        """Генерирует уникальные ежедневные задания по английскому с помощью ИИ"""
+        try:
+            # Получаем прогресс пользователя для персонализации
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT english_exp, last_english_test_date, english_test_attempts
+                FROM users WHERE user_id = ?
+            """, (user_id,))
+            user_data = cursor.fetchone()
+            english_exp = user_data[0] if user_data else 0
+            last_test = user_data[1] if len(user_data) > 1 else None
+            test_attempts = user_data[2] if len(user_data) > 2 else 0
 
-        # Task templates for different levels
-        task_templates = {
-            "A1": [
-                {
-                    "type": "vocabulary",
-                    "content": "Выучи 5 новых слов на тему 'Еда'",
-                    "link": "https://quizlet.com/ru/subject/food-english/",
-                    "exp": 5,
-                },
-                {
-                    "type": "listening",
-                    "content": "Посмотри 10 минут мультфильм на английском",
-                    "link": "https://www.youtube.com/watch?v=sVlQjY5gkLQ",
-                    "exp": 8,
-                },
-                {
-                    "type": "grammar",
-                    "content": "Сделай 10 упражнений на Present Simple",
-                    "link": "https://learnenglish.britishcouncil.org/grammar/english-grammar-reference/present-simple",
-                    "exp": 6,
-                },
+            # Получаем последние выполненные задания для анализа
+            cursor.execute("""
+                SELECT task_type, task_content, completed 
+                FROM daily_english_tasks 
+                WHERE user_id = ? AND date >= date('now', '-7 days')
+                ORDER BY date DESC LIMIT 5
+            """, (user_id,))
+            recent_tasks = cursor.fetchall()
+            
+            # Формируем текст последних заданий для ИИ
+            recent_tasks_text = ", ".join([f"{task[0]}: {task[1]}" for task in recent_tasks if task[2]]) if recent_tasks else "Нет заданий"
+            
+            # Промпт для ИИ с учетом прогресса пользователя
+            prompt = f"""
+            Создай 3 уникальных ежедневных задания по английскому языку для уровня {english_level}.
+            
+            Учитывай прогресс пользователя:
+            - Текущий опыт: {english_exp} EXP
+            - Последний тест: {last_test if last_test else 'Не сдавал'}
+            - Попытки теста: {test_attempts}
+            - Последние выполненные задания: {recent_tasks_text if recent_tasks_text else 'Нет заданий'}
+            
+            Требования:
+            1. Каждое задание должно быть уникальным и интересным
+            2. Адаптировано под уровень {english_level}
+            3. Включай практические упражнения
+            4. Добавляй актуальные ссылки на образовательные ресурсы
+            5. Учитывай слабые места пользователя
+            6. Чередуй типы заданий (лексика, аудирование, грамматика, говорение)
+            
+            Формат ответа (строго JSON):
+            {{
+                "tasks": [
+                    {{
+                        "type": "vocabulary|listening|grammar|speaking|reading|writing",
+                        "content": "текст задания",
+                        "link": "ссылка на ресурс",
+                        "exp": 5-15,
+                        "ai_generated": true
+                    }}
+                ]
+            }}
+            """
+
+            # Настройка OpenAI
+            client = openai.OpenAI(api_key=OPENAI_API_KEY)
+            
+            # Запрос к ИИ
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "Ты - помощник по изучению английского языка. Создавай интересные и разнообразные задания."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=600,
+                temperature=0.7
+            )
+            
+            # Обработка ответа ИИ
+            ai_response = json.loads(response.choices[0].message.content)
+            ai_tasks = ai_response.get("tasks", [])
+            
+            # Валидация и сохранение заданий
+            valid_tasks = []
+            for task in ai_tasks:
+                if all(key in task for key in ["type", "content", "exp"]) and task["exp"] >= 5:
+                    valid_tasks.append(task)
+            
+            # Сохранение в базу данных
+            for task in valid_tasks[:3]:  # Берем максимум 3 задания
+                cursor.execute("""
+                    INSERT INTO daily_english_tasks 
+                    (user_id, date, task_type, task_content, task_link, completed, exp_reward)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (user_id, date.today(), task["type"], task["content"], task.get("link", ""), False, task["exp"]))
+            
+            self.conn.commit()
+            return valid_tasks[:3]
+            
+        except Exception as e:
+            logging.error(f"Error generating AI tasks: {e}")
+            # Fallback на статические шаблоны при ошибке ИИ
+            return self.get_fallback_english_tasks(english_level)
+    
+    def get_fallback_english_tasks(self, english_level: str):
+        """Запасные статические задания на случай ошибки ИИ"""
+        fallback_tasks = {
+            "A0": [
+                {"type": "vocabulary", "content": "Выучи 5 английских слов", "link": "https://quizlet.com", "exp": 5},
+                {"type": "listening", "content": "Прослушай английскую песню", "link": "https://youtube.com", "exp": 8},
+                {"type": "grammar", "content": "Изучи Present Simple", "link": "https://learnenglish.britishcouncil.org", "exp": 6},
             ],
-            "A2": [
-                {
-                    "type": "vocabulary",
-                    "content": "Выучи 7 слов на тему 'Путешествия'",
-                    "link": "https://quizlet.com/ru/subject/travel-english/",
-                    "exp": 6,
-                },
-                {
-                    "type": "listening",
-                    "content": "Послушай 15 минут подкаст для начинающих",
-                    "link": "https://www.bbc.co.uk/learningenglish/english/features/6-minute-english",
-                    "exp": 10,
-                },
-                {
-                    "type": "speaking",
-                    "content": "Запиши 1 минуту ответа на 'What did you do yesterday?'",
-                    "link": "https://vocaroo.com/",
-                    "exp": 12,
-                },
+            "A1": [
+                {"type": "vocabulary", "content": "Выучи 10 слов на тему 'Еда'", "link": "https://quizlet.com", "exp": 8},
+                {"type": "listening", "content": "Посмотри 15 минут мультфильма", "link": "https://www.youtube.com", "exp": 10},
+                {"type": "grammar", "content": "Сделай 15 упражнений на Past Simple", "link": "https://learnenglish.britishcouncil.org", "exp": 12},
             ],
             "B1": [
-                {
-                    "type": "vocabulary",
-                    "content": "Выучи 10 фразовых глаголов",
-                    "link": "https://www.phrasalverbdemon.com/",
-                    "exp": 8,
-                },
-                {
-                    "type": "listening",
-                    "content": "Посмотри TED-Ed видео (10 минут)",
-                    "link": "https://ed.ted.com/",
-                    "exp": 12,
-                },
-                {
-                    "type": "reading",
-                    "content": "Прочитай новость на BBC Learning English",
-                    "link": "https://www.bbc.co.uk/learningenglish/english/features/london-life",
-                    "exp": 10,
-                },
-                {
-                    "type": "writing",
-                    "content": "Напиши эссе на 100 слов 'My perfect weekend'",
-                    "link": "https://www.grammarly.com/",
-                    "exp": 15,
-                },
-            ],
-            "B2": [
-                {
-                    "type": "vocabulary",
-                    "content": "Выучи 15 идиом на тему 'Работа'",
-                    "link": "https://www.usingenglish.com/reference/idioms/",
-                    "exp": 10,
-                },
-                {
-                    "type": "listening",
-                    "content": "Послушай 20 минут подкаст на интересную тему",
-                    "link": "https://www.npr.org/podcasts/",
-                    "exp": 15,
-                },
-                {
-                    "type": "speaking",
-                    "content": "Проведи 5 минут разговор с носителем",
-                    "link": "https://www.tandem.net/",
-                    "exp": 20,
-                },
-                {
-                    "type": "writing",
-                    "content": "Напиши статью на 200 слов о технологиях",
-                    "link": "https://medium.com/",
-                    "exp": 18,
-                },
+                {"type": "vocabulary", "content": "Выучи 15 фразовых глаголов", "link": "https://www.phrasalverbdemon.com/", "exp": 12},
+                {"type": "reading", "content": "Прочитай новость на BBC Learning", "link": "https://www.bbc.co.uk/learningenglish", "exp": 15},
+                {"type": "writing", "content": "Напиши эссе на 100 слов", "link": "https://www.grammarly.com/", "exp": 18},
             ],
         }
-
-        # Get tasks for user level or default to B1
-        level_tasks = task_templates.get(english_level, task_templates["B1"])
-
-        # Select 2-3 random tasks for today
-        daily_tasks = random.sample(level_tasks, min(3, len(level_tasks)))
-
-        return daily_tasks
+        return fallback_tasks.get(english_level, fallback_tasks["A1"])
 
     def get_english_level_requirements(self, level: str):
         """Get requirements for English level"""
@@ -1850,7 +1863,7 @@ E → D → C → B → A → S
 
         # If no tasks for today, generate new ones
         if not existing_tasks:
-            daily_tasks = self.generate_english_tasks(english_level)
+            daily_tasks = self.generate_english_tasks(english_level, user_id)
 
             for task in daily_tasks:
                 cursor.execute(
