@@ -282,7 +282,7 @@ class SimpleRaidBot:
         elif user_data[1] == 0:
             # User exists but registration not completed
             await message.answer(
-                "� <b>Продолжение регистрации</b>\n\n"
+                "📋 <b>Продолжение регистрации</b>\n\n"
                 "Твой профиль не завершен. Давай закончим настройку!",
                 reply_markup=self.get_registration_keyboard(),
             )
@@ -811,11 +811,11 @@ E → D → C → B → A → S
 🧹 Чистота кожи: {skin_health}/100
 📚 Английский: {english_progress}/1000
 
-� <b>Английский язык:</b>
+📚 <b>Английский язык:</b>
 {english_rank}
 🎯 Уровень: {english_level} ({english_exp} EXP)
 
-� <b>Контроль астмы:</b>
+🫁 <b>Контроль астмы:</b>
 {asthma_emoji} {asthma_control}/5
 
 ⚖️ <b>Вес:</b>
@@ -1643,7 +1643,7 @@ E → D → C → B → A → S
 🌟 <b>【SOLO LEVELING SYSTEM】</b>
 "Сила не дается, она зарабатывается кровью и потом"
 
-🚀 <b>Продd�лжай свой путь к вершине!</b>
+🚀 <b>Продолжай свой путь к вершине!</b>
 """
 
             keyboard = InlineKeyboardMarkup(
@@ -1995,7 +1995,7 @@ E → D → C → B → A → S
                 keyboard_buttons.append(
                     [
                         InlineKeyboardButton(
-                            text=f"� Открыть задание {i}", url=task_link
+                            text=f"📖 Открыть задание {i}", url=task_link
                         ),
                         InlineKeyboardButton(
                             text=f"✅ Выполнено {i}",
@@ -3545,20 +3545,69 @@ E → D → C → B → A → S
         return "\n".join(f"• {tip}" for tip in random.sample(tips, 3))
 
     async def run(self):
-        # Start the skin care reminder task
-        asyncio.create_task(self.send_skin_care_reminders())
-        await self.dp.start_polling(
-            self.bot, allowed_updates=self.dp.resolve_used_update_types()
-        )
+        try:
+            # ПОЛУЧАЕМ И ВЫВОДИМ URL
+            replit_slug = os.environ.get('REPL_SLUG', '')
+            replit_owner = os.environ.get('REPL_OWNER', '')
 
+            if replit_slug and replit_owner:
+                public_url = f"https://{replit_slug}--{replit_owner}.replit.app"
+                print("\n" + "="*50)
+                print("✅ БОТ ЗАПУЩЕН!")
+                print(f"🌐 URL ДЛЯ ПИНГЕРА: {public_url}/ping")
+                print("📋 Скопируйте этот URL в UptimeRobot")
+                print("="*50 + "\n")
+
+            # Запускаем напоминания
+            asyncio.create_task(self.send_skin_care_reminders())
+
+            logging.info("🤖 Bot started polling...")
+            await self.dp.start_polling(
+                self.bot,
+                allowed_updates=self.dp.resolve_used_update_types()
+            )
+        except Exception as e:
+            logging.error(f"Error in run: {e}")
 
 def main():
     if not TOKEN:
         print("Ошибка: TELEGRAM_BOT_TOKEN не найден в .env файле")
         return
 
+    # Запускаем пингер
+    keep_alive()
+
+    # Запускаем бота
     bot = SimpleRaidBot(TOKEN)
     asyncio.run(bot.run())
+
+
+# ===== ПИНГЕР ДЛЯ БЕСПЛАТНОГО ХОСТИНГА =====
+from flask import Flask
+from threading import Thread
+import time
+
+app = Flask(__name__)
+
+
+@app.route("/")
+@app.route("/ping")
+def ping():
+    return "🤖 Бот работает!"
+
+
+def run():
+    app.run(host="0.0.0.0", port=8080)
+
+
+def keep_alive():
+    t = Thread(target=run)
+    t.daemon = True
+    t.start()
+    print("🌐 Пингер запущен на порту 8080")
+
+
+# ============================================
 
 
 if __name__ == "__main__":
