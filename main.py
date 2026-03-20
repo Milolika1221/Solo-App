@@ -41,18 +41,18 @@ class SimpleRaidBot:
         self.init_database()
 
     def init_database(self):
-        """Initialize database with all required tables"""
+        """Инициализация базы данных со всеми необходимыми таблицами"""
         self.conn = sqlite3.connect("raid_system.db")
         cursor = self.conn.cursor()
 
-        # Clear old nutrition data if exists (only if table exists)
+        # Очищаем старые данные о питании, если таблица существует
         cursor.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='nutrition_plans'"
         )
         if cursor.fetchone():
             cursor.execute("DELETE FROM nutrition_plans")
 
-        # Users table (expanded according to TZ)
+        # Таблица пользователей (расширенная согласно ТЗ)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER PRIMARY KEY,
@@ -77,15 +77,13 @@ class SimpleRaidBot:
                 english_level_progress INTEGER DEFAULT 0,
                 english_test_attempts INTEGER DEFAULT 0,
                 last_english_test_date DATE,
-                has_asthma BOOLEAN DEFAULT 1,
-                asthma_control INTEGER DEFAULT 3,
-                anime_universe TEXT DEFAULT 'Solo Leveling',
+                                anime_universe TEXT DEFAULT 'Solo Leveling',
                 registration_completed BOOLEAN DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
-        # Daily quests table
+        # Таблица ежедневных квестов
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS daily_quests (
                 quest_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,7 +98,7 @@ class SimpleRaidBot:
             )
         """)
 
-        # English progress table
+        # Таблица прогресса по английскому
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS english_progress (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,7 +111,7 @@ class SimpleRaidBot:
             )
         """)
 
-        # Inventory table
+        # Таблица инвентаря
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS inventory (
                 item_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -125,7 +123,7 @@ class SimpleRaidBot:
             )
         """)
 
-        # Achievements table
+        # Таблица достижений
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS achievements (
                 achievement_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -136,7 +134,7 @@ class SimpleRaidBot:
             )
         """)
 
-        # Nutrition plans table
+        # Таблица планов питания
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS nutrition_plans (
                 plan_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,7 +152,7 @@ class SimpleRaidBot:
             )
         """)
 
-        # Weight tracking table
+        # Таблица отслеживания веса
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS weight_tracking (
                 tracking_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -165,7 +163,7 @@ class SimpleRaidBot:
             )
         """)
 
-        # Daily English tasks table
+        # Таблица ежедневных заданий по английскому
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS daily_english_tasks (
                 task_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -180,7 +178,7 @@ class SimpleRaidBot:
             )
         """)
 
-        # English level requirements table
+        # Таблица требований к уровням английского
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS english_level_requirements (
                 level TEXT PRIMARY KEY,
@@ -195,7 +193,7 @@ class SimpleRaidBot:
             )
         """)
 
-        # English test results table
+        # Таблица результатов тестов по английскому
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS english_test_results (
                 test_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -214,7 +212,7 @@ class SimpleRaidBot:
             )
         """)
 
-        # Initialize level requirements
+        # Инициализация требований к уровням
         cursor.execute("""
             INSERT OR IGNORE INTO english_level_requirements VALUES
             ('A0', 0, 0, 'Basic alphabet, greetings', 'Numbers 1-100, colors', 'Basic introductions', 'Simple instructions', 'Very short texts', 'Basic phrases'),
@@ -275,9 +273,9 @@ class SimpleRaidBot:
                 "⚔️ Ты новый Охотник!\n"
                 "Давай создадим твой профиль для геймификации прогресса.\n\n"
                 "📝 <b>Регистрация Охотника</b>\n\n"
-                "Для начала, определим твое состояние здоровья.\n\n"
-                "<b>У тебя есть астма?</b>",
-                reply_markup=self.get_asthma_keyboard(),
+                "Для начала, определим твою вселенную:\n\n"
+                "<b>Выбери свою вселенную:</b>",
+                reply_markup=self.get_anime_universe_keyboard(),
             )
         elif user_data[1] == 0:
             # User exists but registration not completed
@@ -289,21 +287,6 @@ class SimpleRaidBot:
         else:
             await self.main_menu(message)
 
-    def get_asthma_keyboard(self):
-        return InlineKeyboardMarkup(
-            inline_keyboard=[
-                [
-                    InlineKeyboardButton(
-                        text="Да, у меня есть астма", callback_data="reg_asthma_yes"
-                    )
-                ],
-                [
-                    InlineKeyboardButton(
-                        text="Нет, у меня нет астмы", callback_data="reg_asthma_no"
-                    )
-                ],
-            ]
-        )
 
     def get_registration_keyboard(self):
         return InlineKeyboardMarkup(
@@ -408,7 +391,7 @@ class SimpleRaidBot:
         )
 
     def get_workout_ranks(self):
-        """Get available workout ranks based on asthma control"""
+        """Получить доступные ранги тренировок"""
         return {
             "E": {
                 "name": "E-rank",
@@ -624,6 +607,67 @@ class SimpleRaidBot:
                     ],
                     "warnings": ["⚠️ Плавные движения", "🌬️ Контроль спины"],
                     "exp": 20,
+                },
+                "A": {
+                    "title": "💪 Квест: Титановое тело I",
+                    "description": "Продвинутая трансформация",
+                    "exercises": [
+                        {
+                            "name": "💪 Силовые упражнения",
+                            "duration": "20 минут",
+                            "quote": "Сила куется в огне усилий",
+                        },
+                        {
+                            "name": "🏃 Высокоинтенсивный кардио",
+                            "duration": "15 минут",
+                            "quote": "Сердце титана бьется ровно",
+                        },
+                        {
+                            "name": "🧘 Восстановительная медитация",
+                            "duration": "10 минут",
+                            "quote": "Покой укрепляет сталь",
+                        },
+                        {
+                            "name": "🤸 Гибкость позвоночника",
+                            "duration": "10 минут",
+                            "quote": "Гибкое тело - несокрушимое",
+                        },
+                    ],
+                    "warnings": ["⚠️ Контролируй нагрузку", "💧 Пей достаточно воды", "🌬️ Правильное дыхание"],
+                    "exp": 50,
+                },
+                "S": {
+                    "title": "💪 Квест: Титановое тело II",
+                    "description": "Максимальная трансформация тела",
+                    "exercises": [
+                        {
+                            "name": "🔥 Плиометрическая тренировка",
+                            "duration": "25 минут",
+                            "quote": "Взрывная сила титана",
+                        },
+                        {
+                            "name": "💪 Функциональный тренинг",
+                            "duration": "20 минут",
+                            "quote": "Тело работает как единый механизм",
+                        },
+                        {
+                            "name": "🏃 Интервальный спринт",
+                            "duration": "15 минут",
+                            "quote": "Скорость решает всё",
+                        },
+                        {
+                            "name": "🧘 Статическая растяжка",
+                            "duration": "15 минут",
+                            "quote": "Растяжка укрепляет мышцы",
+                        },
+                        {
+                            "name": "💆 Массаж и восстановление",
+                            "duration": "10 минут",
+                            "quote": "Восстановление - часть тренировки",
+                        },
+                    ],
+                    "warnings": ["⚠️ Максимальная концентрация", "💧 Обязательное увлажнение", "🌬️ Дыхание по схеме 4-7-8", "⚡ Следи за пульсом"],
+                    "exp": 100,
                 }
             },
             "haikyuu": {
@@ -751,13 +795,10 @@ class SimpleRaidBot:
 📋 Квесты - Ежедневные задания
 ⚔️ Тренировки - Аниме-тренировки
 📊 Статус - Твой прогресс
-💨 Астма - Контроль состояния
+📚 Английский - Изучение языка
 
 ⚔️ <b>Система рангов:</b>
 E → D → C → B → A → S
-
-🌬️ <b>Безопасность для астматиков:</b>
-Все тренировки адаптированы под твое состояние!
 
 🎯 Удачи в рейде, Охотник!
         """
@@ -770,7 +811,7 @@ E → D → C → B → A → S
         cursor.execute(
             """
             SELECT level, exp, exp_to_next, power, analysis, endurance, speed, 
-                   skin_health, english_progress, streak, asthma_control, weight, target_weight,
+                   skin_health, english_progress, streak, weight, target_weight,
                    english_level, english_exp
             FROM users WHERE user_id = ?
         """,
@@ -783,15 +824,10 @@ E → D → C → B → A → S
             skin_health = user_data[7] if len(user_data) > 7 else 50
             english_progress = user_data[8] if len(user_data) > 8 else 0
             streak = user_data[9] if len(user_data) > 9 else 0
-            asthma_control = user_data[10] if len(user_data) > 10 else 3
-            weight = user_data[11] if len(user_data) > 11 else None
-            target_weight = user_data[12] if len(user_data) > 12 else None
-            english_level = user_data[13] if len(user_data) > 13 else "A0"
-            english_exp = user_data[14] if len(user_data) > 14 else 0
-
-            asthma_emoji = (
-                "😊" if asthma_control >= 4 else "😐" if asthma_control >= 3 else "😷"
-            )
+            weight = user_data[10] if len(user_data) > 10 else None
+            target_weight = user_data[11] if len(user_data) > 11 else None
+            english_level = user_data[12] if len(user_data) > 12 else "A0"
+            english_exp = user_data[13] if len(user_data) > 13 else 0
             english_rank = self.get_english_rank_title(english_level)
 
             stats_text = f"""
@@ -815,20 +851,12 @@ E → D → C → B → A → S
 {english_rank}
 🎯 Уровень: {english_level} ({english_exp} EXP)
 
-🫁 <b>Контроль астмы:</b>
-{asthma_emoji} {asthma_control}/5
-
 ⚖️ <b>Вес:</b>
 {weight if weight else "Не указан"} кг
             """
 
             keyboard = InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [
-                        InlineKeyboardButton(
-                            text="🔄 Обновить", callback_data="refresh_stats"
-                        )
-                    ],
                     [
                         InlineKeyboardButton(
                             text="⚖️ Записать вес", callback_data="weight_log"
@@ -1115,49 +1143,6 @@ E → D → C → B → A → S
 
         await message.answer(workout_text, reply_markup=keyboard)
 
-    async def asthma_control(self, message: types.Message):
-        keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [
-                    InlineKeyboardButton(
-                        text="😊 Отлично (5/5)", callback_data="asthma_5"
-                    )
-                ],
-                [
-                    InlineKeyboardButton(
-                        text="🙂 Хорошо (4/5)", callback_data="asthma_4"
-                    )
-                ],
-                [
-                    InlineKeyboardButton(
-                        text="😐 Нормально (3/5)", callback_data="asthma_3"
-                    )
-                ],
-                [InlineKeyboardButton(text="😕 Плохо (2/5)", callback_data="asthma_2")],
-                [
-                    InlineKeyboardButton(
-                        text="😢 Очень плохо (1/5)", callback_data="asthma_1"
-                    )
-                ],
-            ]
-        )
-
-        asthma_text = """
-💨 <b>Контроль астмы</b>
-
-Оцени свое самочувствие:
-
-😊 Отлично - нет симптомов
-🙂 Хорошо - легкие симптомы
-😐 Нормально - умеренные симптомы
-😕 Плохо - сильные симптомы
-😢 Очень плохо - опасно
-
-⚠️ <b>Важно:</b>
-При плохом самочувствии выбирай только E-rank тренировки!
-        """
-
-        await message.answer(asthma_text, reply_markup=keyboard)
 
     def get_nutrition_info(
         self, user_weight: float = None, target_weight: float = None
@@ -2142,34 +2127,6 @@ E → D → C → B → A → S
             return
 
         # Registration handlers
-        if action == "reg_asthma_yes":
-            cursor = self.conn.cursor()
-            cursor.execute(
-                "UPDATE users SET has_asthma = 1 WHERE user_id = ?", (user_id,)
-            )
-            self.conn.commit()
-
-            await callback.message.answer(
-                "💨 <b>Понял! У тебя есть астма.</b>\n\n"
-                "Это очень важно - все тренировки будут адаптированы под твое состояние.\n"
-                "Мы будем спрашивать о самочувствии перед каждой тренировкой.\n\n"
-                "Теперь определим твой пол:",
-                reply_markup=self.get_gender_keyboard(),
-            )
-
-        elif action == "reg_asthma_no":
-            cursor = self.conn.cursor()
-            cursor.execute(
-                "UPDATE users SET has_asthma = 0 WHERE user_id = ?", (user_id,)
-            )
-            self.conn.commit()
-
-            await callback.message.answer(
-                "✅ <b>Отлично! У тебя нет астмы.</b>\n\n"
-                "Ты сможешь использовать все уровни тренировок без ограничений.\n\n"
-                "Теперь определим твой пол:",
-                reply_markup=self.get_gender_keyboard(),
-            )
 
         elif action.startswith("reg_gender_"):
             gender_map = {"female": "женский", "male": "мужской", "none": None}
@@ -2222,7 +2179,6 @@ E → D → C → B → A → S
             await callback.message.answer(
                 f"🎉 <b>Поздравляем, регистрация завершена!</b>\n\n"
                 f"📋 <b>Твой профиль:</b>\n"
-                f"💨 Астма: {'да' if cursor.execute('SELECT has_asthma FROM users WHERE user_id = ?', (user_id,)).fetchone()[0] else 'нет'}\n"
                 f"📚 Английский: A0 (🌱 Новичок Охотника)\n"
                 f"⚔️ Вселенная: Solo Leveling (по умолчанию)\n\n"
                 f"🎁 Бонус за регистрацию: +50 EXP\n\n"
@@ -2232,8 +2188,9 @@ E → D → C → B → A → S
 
         elif action == "reg_continue":
             await callback.message.answer(
-                "📝 <b>Продолжаем регистрацию...</b>\n\nУ тебя есть астма?",
-                reply_markup=self.get_asthma_keyboard(),
+                "📝 <b>Продолжаем регистрацию...</b>\n\n"
+                "Выбери свою вселенную:",
+                reply_markup=self.get_anime_universe_keyboard(),
             )
 
         elif action == "reg_skip":
@@ -2242,7 +2199,6 @@ E → D → C → B → A → S
                 """
                 UPDATE users 
                 SET registration_completed = 1, 
-                    has_asthma = 1, 
                     gender = 'женский',
                     skin_type = 'нормальная',
                     english_level = 'B1',
@@ -2277,42 +2233,6 @@ E → D → C → B → A → S
             await self.show_selfcare_quests(callback.message)
         elif action == "quest_category_habits":
             await self.show_habits_quests(callback.message)
-        elif action.startswith("asthma_"):
-            rating = int(action.split("_")[1])
-            user_id = callback.from_user.id
-
-            cursor = self.conn.cursor()
-            cursor.execute(
-                """
-                UPDATE users 
-                SET asthma_control = ?, last_activity = ?
-                WHERE user_id = ?
-            """,
-                (rating, date.today(), user_id),
-            )
-            self.conn.commit()
-
-            emoji = "😊" if rating >= 4 else "😐" if rating >= 3 else "😷"
-
-            text = f"{emoji} <b>Самочувствие обновлено</b>\n\n"
-            text += f"💨 Уровень контроля астмы: {rating}/5\n\n"
-
-            if rating <= 2:
-                text += "⚠️ <b>Рекомендации:</b>\n"
-                text += "• Только E-rank тренировки\n"
-                text += "• Дополнительный отдых\n"
-                text += "• Консультация с врачом\n"
-            elif rating <= 3:
-                text += "🟡 <b>Рекомендации:</b>\n"
-                text += "• Тренировки до D-rank\n"
-                text += "• Контролируй дыхание\n"
-            else:
-                text += "✅ <b>Отличное самочувствие!</b>\n"
-                text += "• Можно все ранги тренировок\n"
-
-            keyboard = InlineKeyboardMarkup(inline_keyboard=[])
-
-            await callback.message.answer(text, reply_markup=keyboard)
 
         # Enhanced workout handlers
         elif action.startswith("workout_universe_"):
@@ -2321,12 +2241,12 @@ E → D → C → B → A → S
 
             cursor = self.conn.cursor()
             cursor.execute(
-                "SELECT asthma_control FROM users WHERE user_id = ?", (user_id,)
+                "SELECT level FROM users WHERE user_id = ?", (user_id,)
             )
             result = cursor.fetchone()
-            asthma_level = result[0] if result else 3
+            user_level = result[0] if result else 1
 
-            available_ranks = self.get_available_ranks(asthma_level)
+            available_ranks = self.get_available_ranks(user_level)
             workout_library = self.get_workout_library()
 
             # Get the highest available rank
