@@ -805,31 +805,32 @@ E → D → C → B → A → S
         await message.answer(help_text)
 
     async def stats_command(self, message: types.Message):
-        user_id = message.from_user.id
-        cursor = self.conn.cursor()
-        cursor.execute(
-            """
-            SELECT level, exp, exp_to_next, power, analysis, endurance, speed, 
-                   skin_health, english_progress, streak, weight, target_weight,
-                   english_level, english_exp
-            FROM users WHERE user_id = ?
-        """,
-            (user_id,),
-        )
+        try:
+            user_id = message.from_user.id
+            cursor = self.conn.cursor()
+            cursor.execute(
+                """
+                SELECT level, exp, exp_to_next, power, analysis, endurance, speed, 
+                       skin_health, english_progress, streak, weight, target_weight,
+                       english_level, english_exp
+                FROM users WHERE user_id = ?
+            """,
+                (user_id,),
+            )
 
-        user_data = cursor.fetchone()
-        if user_data:
-            level, exp, exp_to_next, power, analysis, endurance, speed = user_data[:7]
-            skin_health = user_data[7] if len(user_data) > 7 else 50
-            english_progress = user_data[8] if len(user_data) > 8 else 0
-            streak = user_data[9] if len(user_data) > 9 else 0
-            weight = user_data[10] if len(user_data) > 10 else None
-            target_weight = user_data[11] if len(user_data) > 11 else None
-            english_level = user_data[12] if len(user_data) > 12 else "A0"
-            english_exp = user_data[13] if len(user_data) > 13 else 0
-            english_rank = self.get_english_rank_title(english_level)
+            user_data = cursor.fetchone()
+            if user_data:
+                level, exp, exp_to_next, power, analysis, endurance, speed = user_data[:7]
+                skin_health = user_data[7] if len(user_data) > 7 else 50
+                english_progress = user_data[8] if len(user_data) > 8 else 0
+                streak = user_data[9] if len(user_data) > 9 else 0
+                weight = user_data[10] if len(user_data) > 10 else None
+                target_weight = user_data[11] if len(user_data) > 11 else None
+                english_level = user_data[12] if len(user_data) > 12 else "A0"
+                english_exp = user_data[13] if len(user_data) > 13 else 0
+                english_rank = self.get_english_rank_title(english_level)
 
-            stats_text = f"""
+                stats_text = f"""
 📊 <b>Статус рейда Охотника</b>
 
 🎯 <b>Уровень: {level}</b>
@@ -852,19 +853,28 @@ E → D → C → B → A → S
 
 ⚖️ <b>Вес:</b>
 {weight if weight else "Не указан"} кг
-            """
+                """
 
-            keyboard = InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [
-                        InlineKeyboardButton(
-                            text="⚖️ Записать вес", callback_data="weight_log"
-                        )
-                    ],
-                ]
+                keyboard = InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="⚖️ Записать вес", callback_data="weight_log"
+                            )
+                        ],
+                    ]
+                )
+
+                await message.answer(stats_text, reply_markup=keyboard)
+            else:
+                await message.answer(
+                    "❌ Пользователь не найден. Пожалуйста, пройдите регистрацию заново с /start"
+                )
+        except Exception as e:
+            logging.error(f"Error in stats_command: {e}")
+            await message.answer(
+                "❌ Произошла ошибка при получении статуса. Попробуйте позже или используйте /start"
             )
-
-            await message.answer(stats_text, reply_markup=keyboard)
 
     async def daily_quests(self, message: types.Message):
         user_id = message.from_user.id
@@ -1805,83 +1815,48 @@ E → D → C → B → A → S
         await message.answer(nutrition_text, reply_markup=keyboard)
 
     async def english_menu(self, message: types.Message):
-        user_id = message.from_user.id
+        try:
+            user_id = message.from_user.id
 
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
-        user_exists = cursor.fetchone()
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
+            user_exists = cursor.fetchone()
 
-        if not user_exists:
-            await message.answer(
-                "❌ Пользователь не найден. Пожалуйста, пройдите регистрацию заново с /start"
+            if not user_exists:
+                await message.answer(
+                    "❌ Пользователь не найден. Пожалуйста, пройдите регистрацию заново с /start"
+                )
+                return
+
+            cursor.execute(
+                "SELECT english_level, english_exp FROM users WHERE user_id = ?", (user_id,)
             )
-            return
+            result = cursor.fetchone()
+            english_level = result[0] if result else "A0"
+            english_exp = result[1] if result else 0
 
-        cursor.execute(
-            "SELECT english_level, english_exp FROM users WHERE user_id = ?", (user_id,)
-        )
-        result = cursor.fetchone()
-        english_level = result[0] if result else "A0"
-        english_exp = result[1] if result else 0
+            # Get level requirements
+            requirements = self.get_english_level_requirements(english_level)
+            next_level = self.get_next_english_level(english_level)
 
-        # Get level requirements
-        requirements = self.get_english_level_requirements(english_level)
-        next_level = self.get_next_english_level(english_level)
+            # Calculate progress to next level
+            exp_progress = 0
+            if requirements and next_level:
+                next_requirements = self.get_english_level_requirements(next_level)
+                if next_requirements:
+                    exp_progress = int(
+                        (english_exp / next_requirements["exp_required"]) * 100
+                    )
 
-        # Calculate progress to next level
-        exp_progress = 0
-        if requirements and next_level:
-            next_requirements = self.get_english_level_requirements(next_level)
-            if next_requirements:
-                exp_progress = int(
-                    (english_exp / next_requirements["exp_required"]) * 100
-                )
+            # Check if can take test
+            can_test, test_reason = (
+                self.can_take_english_test(user_id, next_level)
+                if next_level
+                else (False, "Already at max level")
+            )
 
-        # Check if can take test
-        can_test, test_reason = (
-            self.can_take_english_test(user_id, next_level)
-            if next_level
-            else (False, "Already at max level")
-        )
-
-        # Check if daily tasks exist for today
-        today = date.today()
-        cursor.execute(
-            """
-            SELECT task_type, task_content, task_link, completed, exp_reward 
-            FROM daily_english_tasks 
-            WHERE user_id = ? AND date = ?
-            ORDER BY task_id
-        """,
-            (user_id, today),
-        )
-
-        existing_tasks = cursor.fetchall()
-
-        # If no tasks for today, generate new ones
-        if not existing_tasks:
-            daily_tasks = self.generate_english_tasks(english_level, user_id)
-
-            for task in daily_tasks:
-                cursor.execute(
-                    """
-                    INSERT INTO daily_english_tasks 
-                    (user_id, date, task_type, task_content, task_link, exp_reward)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                    (
-                        user_id,
-                        today,
-                        task["type"],
-                        task["content"],
-                        task["link"],
-                        task["exp"],
-                    ),
-                )
-
-            self.conn.commit()
-
-            # Fetch the newly created tasks
+            # Check if daily tasks exist for today
+            today = date.today()
             cursor.execute(
                 """
                 SELECT task_type, task_content, task_link, completed, exp_reward 
@@ -1891,51 +1866,87 @@ E → D → C → B → A → S
             """,
                 (user_id, today),
             )
+
             existing_tasks = cursor.fetchall()
 
-        # Calculate progress
-        completed_tasks = sum(1 for task in existing_tasks if task[3])
-        total_tasks = len(existing_tasks)
-        progress_percentage = (
-            int((completed_tasks / total_tasks) * 100) if total_tasks > 0 else 0
-        )
+            # If no tasks for today, generate new ones
+            if not existing_tasks:
+                daily_tasks = self.generate_english_tasks(english_level, user_id)
 
-        # Get total completed tasks
-        cursor.execute(
-            """
-            SELECT COUNT(*) FROM daily_english_tasks 
-            WHERE user_id = ? AND completed = 1
-        """,
-            (user_id,),
-        )
-        total_completed_tasks = cursor.fetchone()[0]
+                for task in daily_tasks:
+                    cursor.execute(
+                        """
+                        INSERT INTO daily_english_tasks 
+                        (user_id, date, task_type, task_content, task_link, exp_reward)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                        (
+                            user_id,
+                            today,
+                            task["type"],
+                            task["content"],
+                            task["link"],
+                            task["exp"],
+                        ),
+                    )
 
-        # Check topic completion for current level
-        cursor.execute(
-            """
-            SELECT DISTINCT task_type FROM daily_english_tasks 
-            WHERE user_id = ? AND completed = 1 AND date >= date('now', '-30 days')
-        """,
-            (user_id,),
-        )
-        completed_task_types = {row[0] for row in cursor.fetchall()}
+                self.conn.commit()
 
-        required_task_types = {
-            "vocabulary",
-            "listening",
-            "speaking",
-            "reading",
-            "writing",
-        }
-        if english_level in ["A0", "A1"]:
-            required_task_types.add("grammar")
+                # Fetch the newly created tasks
+                cursor.execute(
+                    """
+                    SELECT task_type, task_content, task_link, completed, exp_reward 
+                    FROM daily_english_tasks 
+                    WHERE user_id = ? AND date = ?
+                    ORDER BY task_id
+                """,
+                    (user_id, today),
+                )
+                existing_tasks = cursor.fetchall()
 
-        studied_types = completed_task_types & required_task_types
-        missing_types = required_task_types - completed_task_types
+            # Calculate progress
+            completed_tasks = sum(1 for task in existing_tasks if task[3])
+            total_tasks = len(existing_tasks)
+            progress_percentage = (
+                int((completed_tasks / total_tasks) * 100) if total_tasks > 0 else 0
+            )
 
-        topic_progress = int((len(studied_types) / len(required_task_types)) * 100)
+            # Get total completed tasks
+            cursor.execute(
+                """
+                SELECT COUNT(*) FROM daily_english_tasks 
+                WHERE user_id = ? AND completed = 1
+            """,
+                (user_id,),
+            )
+            total_completed_tasks = cursor.fetchone()[0]
 
-        english_text = f"""
+            # Check topic completion for current level
+            cursor.execute(
+                """
+                SELECT DISTINCT task_type FROM daily_english_tasks 
+                WHERE user_id = ? AND completed = 1 AND date >= date('now', '-30 days')
+            """,
+                (user_id,),
+            )
+            completed_task_types = {row[0] for row in cursor.fetchall()}
+
+            required_task_types = {
+                "vocabulary",
+                "listening",
+                "speaking",
+                "reading",
+                "writing",
+            }
+            if english_level in ["A0", "A1"]:
+                required_task_types.add("grammar")
+
+            studied_types = completed_task_types & required_task_types
+            missing_types = required_task_types - completed_task_types
+
+            topic_progress = int((len(studied_types) / len(required_task_types)) * 100)
+
+            english_text = f"""
 📚 <b>Английский язык</b>
 
 🎯 Твой уровень: {english_level} ({english_exp} EXP)
@@ -1947,81 +1958,86 @@ E → D → C → B → A → S
 📋 <b>Прогресс по темам:</b>
 """
 
-        task_emojis = {
-            "vocabulary": "📚",
-            "listening": "🎧",
-            "speaking": "🗣",
-            "grammar": "📖",
-            "reading": "📄",
-            "writing": "✍️",
-        }
-
-        # Show topic progress
-        for task_type in required_task_types:
-            emoji = task_emojis.get(task_type, "📝")
-            status = "✅" if task_type in studied_types else "⭕"
-            task_names = {
-                "vocabulary": "Лексика",
-                "listening": "Аудирование",
-                "speaking": "Говорение",
-                "grammar": "Грамматика",
-                "reading": "Чтение",
-                "writing": "Письмо",
+            task_emojis = {
+                "vocabulary": "📚",
+                "listening": "🎧",
+                "speaking": "🗣",
+                "grammar": "📖",
+                "reading": "📄",
+                "writing": "✍️",
             }
-            task_name = task_names.get(task_type, task_type)
 
-            english_text += f"{status} {emoji} {task_name}\n"
+            # Show topic progress
+            for task_type in required_task_types:
+                emoji = task_emojis.get(task_type, "📝")
+                status = "✅" if task_type in studied_types else "⭕"
+                task_names = {
+                    "vocabulary": "Лексика",
+                    "listening": "Аудирование",
+                    "speaking": "Говорение",
+                    "grammar": "Грамматика",
+                    "reading": "Чтение",
+                    "writing": "Письмо",
+                }
+                task_name = task_names.get(task_type, task_type)
 
-        english_text += f"\n📋 <b>Сегодняшние задания:</b>\n"
+                english_text += f"{status} {emoji} {task_name}\n"
 
-        keyboard_buttons = []
+            english_text += f"\n📋 <b>Сегодняшние задания:</b>\n"
 
-        for i, task in enumerate(existing_tasks, 1):
-            task_type, task_content, task_link, completed, exp_reward = task
-            emoji = task_emojis.get(task_type, "📝")
-            status = "✅" if completed else "⭕"
+            keyboard_buttons = []
 
-            english_text += f"""
+            for i, task in enumerate(existing_tasks, 1):
+                task_type, task_content, task_link, completed, exp_reward = task
+                emoji = task_emojis.get(task_type, "📝")
+                status = "✅" if completed else "⭕"
+
+                english_text += f"""
 {status} {emoji} <b>Задание {i}:</b> {task_content}
 💰 +{exp_reward} EXP
 """
 
-            if not completed:
+                if not completed:
+                    keyboard_buttons.append(
+                        [
+                            InlineKeyboardButton(
+                                text=f"📖 Открыть задание {i}", url=task_link
+                            ),
+                            InlineKeyboardButton(
+                                text=f"✅ Выполнено {i}",
+                                callback_data=f"eng_task_complete_{task[0]}_{i}",
+                            ),
+                        ]
+                    )
+
+            # Add test button if available
+            if next_level and can_test:
                 keyboard_buttons.append(
                     [
                         InlineKeyboardButton(
-                            text=f"📖 Открыть задание {i}", url=task_link
-                        ),
+                            text=f"🎯 Тест на {next_level}",
+                            callback_data=f"english_test_{next_level}",
+                        )
+                    ]
+                )
+            elif next_level:
+                keyboard_buttons.append(
+                    [
                         InlineKeyboardButton(
-                            text=f"✅ Выполнено {i}",
-                            callback_data=f"eng_task_complete_{task[0]}_{i}",
-                        ),
+                            text=f"🚫 Тест на {next_level} ({test_reason})",
+                            callback_data="test_info",
+                        )
                     ]
                 )
 
-        # Add test button if available
-        if next_level and can_test:
-            keyboard_buttons.append(
-                [
-                    InlineKeyboardButton(
-                        text=f"🎯 Тест на {next_level}",
-                        callback_data=f"english_test_{next_level}",
-                    )
-                ]
-            )
-        elif next_level:
-            keyboard_buttons.append(
-                [
-                    InlineKeyboardButton(
-                        text=f"🚫 Тест на {next_level} ({test_reason})",
-                        callback_data="test_info",
-                    )
-                ]
-            )
+            keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
-        keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
-
-        await message.answer(english_text, reply_markup=keyboard)
+            await message.answer(english_text, reply_markup=keyboard)
+        except Exception as e:
+            logging.error(f"Error in english_menu: {e}")
+            await message.answer(
+                "❌ Произошла ошибка при загрузке раздела Английский. Попробуйте позже или используйте /start"
+            )
 
     def is_weight_input(self, text: str) -> bool:
         """Check if text is a valid weight input"""
