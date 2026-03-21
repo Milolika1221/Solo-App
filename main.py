@@ -1,8 +1,8 @@
 import asyncio
 import logging
 from datetime import datetime, date
-from aiogram import Bot, Dispatcher, types
-from aiogram.dispatcher.filters import Command
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.filters import Command
 from aiogram.types import (
     ReplyKeyboardMarkup,
     KeyboardButton,
@@ -33,7 +33,7 @@ if not TOKEN:
 class SimpleRaidBot:
     def __init__(self, token):
         self.bot = Bot(token=token)
-        self.dp = Dispatcher(self.bot)
+        self.dp = Dispatcher()
         self.setup_handlers()
         self.init_database()
 
@@ -3478,7 +3478,7 @@ E → D → C → B → A → S
             asyncio.create_task(self.send_skin_care_reminders())
 
             logging.info("🤖 Bot started polling...")
-            await self.dp.start_polling()
+            await self.dp.start_polling(self.bot)
         except Exception as e:
             logging.error(f"❌ Ошибка запуска бота: {e}")
             raise
