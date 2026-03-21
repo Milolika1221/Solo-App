@@ -2229,6 +2229,33 @@ E → D → C → B → A → S
                 reply_markup=self.get_main_keyboard(),
             )
 
+        elif action.startswith("reg_universe_"):
+            universe_map = {
+                "solo": "Solo Leveling",
+                "tower": "Tower of God",
+                "wind": "Wind Breaker",
+                "kengan": "Kengan Ashura",
+                "lookism": "Lookism",
+                "haikyuu": "Haikyuu",
+                "run": "Run with the Wind",
+            }
+            universe_key = action.split("_")[2]
+            universe_name = universe_map.get(universe_key, "Solo Leveling")
+
+            cursor = self.conn.cursor()
+            cursor.execute(
+                "UPDATE users SET anime_universe = ? WHERE user_id = ?",
+                (universe_name, user_id),
+            )
+            self.conn.commit()
+
+            await callback.message.answer(
+                f"✅ <b>Вселенная выбрана: {universe_name}</b>\n\n"
+                "Теперь выбери пол:",
+                reply_markup=self.get_gender_keyboard(),
+            )
+            await callback.answer()
+
         elif action == "refresh_stats":
             await self.stats_command(callback.message)
         elif action == "refresh_quests":
