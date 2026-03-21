@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 import json
 import random
 import openai  # Добавляем OpenAI для ИИ-интеграции
+from health_check import start_health_check  # Импортируем health check
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,7 +30,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "sk-abcdef1234567890abcdef123456789
 
 if not TOKEN:
     print("❌ Ошибка: TELEGRAM_BOT_TOKEN не найден в переменных окружения!")
-    print("🔧 Добавь токен в Secrets на Replit или в .env файл")
+    print("🔧 Добавьте токен в .env файл или Environment Variables на Render")
     exit(1)
 
 
@@ -3497,50 +3498,28 @@ E → D → C → B → A → S
             logging.info("🤖 Bot started polling...")
             await self.dp.start_polling(
                 self.bot,
-                allowed_updates=self.dp.resolve_used_update_types()
             )
         except Exception as e:
-            logging.error(f"Error in run: {e}")
+            logging.error(f"❌ Ошибка запуска бота: {e}")
+            raise
 
 def main():
     if not TOKEN:
         print("Ошибка: TELEGRAM_BOT_TOKEN не найден в .env файле")
         return
 
-    # Запускаем пингер
-    keep_alive()
-
+    # Запускаем health check для Render
+    start_health_check()
+    
+    # Небольшая пауза для запуска health check
+    import time
+    time.sleep(2)
+    
+    print("🚀 Запуск бота с health check...")
+    
     # Запускаем бота
     bot = SimpleRaidBot(TOKEN)
     asyncio.run(bot.run())
-
-
-# ===== ПИНГЕР ДЛЯ БЕСПЛАТНОГО ХОСТИНГА =====
-from flask import Flask
-from threading import Thread
-import time
-
-app = Flask(__name__)
-
-
-@app.route("/")
-@app.route("/ping")
-def ping():
-    return "🤖 Бот работает!"
-
-
-def run():
-    app.run(host="0.0.0.0", port=8080)
-
-
-def keep_alive():
-    t = Thread(target=run)
-    t.daemon = True
-    t.start()
-    print("🌐 Пингер запущен на порту 8080")
-
-
-# ============================================
 
 
 if __name__ == "__main__":
