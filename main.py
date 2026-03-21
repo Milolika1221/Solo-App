@@ -1,22 +1,19 @@
 import asyncio
 import logging
 from datetime import datetime, date
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import Command
+from aiogram import Bot, Dispatcher, types
+from aiogram.dispatcher.filters import Command
 from aiogram.types import (
     ReplyKeyboardMarkup,
     KeyboardButton,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
 )
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
 import sqlite3
 import os
 from dotenv import load_dotenv
 import json
 import random
-import openai  # Добавляем OpenAI для ИИ-интеграции
 from health_check import start_health_check  # Импортируем health check
 
 # Configure logging
@@ -36,10 +33,8 @@ if not TOKEN:
 
 class SimpleRaidBot:
     def __init__(self, token):
-        self.bot = Bot(
-            token=token, default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-        )
-        self.dp = Dispatcher()
+        self.bot = Bot(token=token)
+        self.dp = Dispatcher(self.bot)
         self.setup_handlers()
         self.init_database()
 
@@ -3480,25 +3475,20 @@ E → D → C → B → A → S
 
     async def run(self):
         try:
-            # ПОЛУЧАЕМ И ВЫВОДИМ URL
-            replit_slug = os.environ.get('REPL_SLUG', '')
-            replit_owner = os.environ.get('REPL_OWNER', '')
-
-            if replit_slug and replit_owner:
-                public_url = f"https://{replit_slug}--{replit_owner}.replit.app"
-                print("\n" + "="*50)
-                print("✅ БОТ ЗАПУЩЕН!")
-                print(f"🌐 URL ДЛЯ ПИНГЕРА: {public_url}/ping")
-                print("📋 Скопируйте этот URL в UptimeRobot")
-                print("="*50 + "\n")
-
+            # Запускаем health check для Render
+            start_health_check()
+            
+            # Небольшая пауза для запуска health check
+            import time
+            time.sleep(2)
+            
+            print("🚀 Запуск бота с health check...")
+            
             # Запускаем напоминания
             asyncio.create_task(self.send_skin_care_reminders())
 
             logging.info("🤖 Bot started polling...")
-            await self.dp.start_polling(
-                self.bot,
-            )
+            await self.dp.start_polling()
         except Exception as e:
             logging.error(f"❌ Ошибка запуска бота: {e}")
             raise
