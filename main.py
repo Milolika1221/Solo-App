@@ -14,7 +14,6 @@ import os
 from dotenv import load_dotenv
 import json
 import random
-from health_check import start_health_check  # Импортируем health check
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -3475,15 +3474,6 @@ E → D → C → B → A → S
 
     async def run(self):
         try:
-            # Запускаем health check для Render
-            start_health_check()
-            
-            # Небольшая пауза для запуска health check
-            import time
-            time.sleep(2)
-            
-            print("🚀 Запуск бота с health check...")
-            
             # Запускаем напоминания
             asyncio.create_task(self.send_skin_care_reminders())
 
@@ -3498,14 +3488,7 @@ def main():
         print("Ошибка: TELEGRAM_BOT_TOKEN не найден в .env файле")
         return
 
-    # Запускаем health check для Render
-    start_health_check()
-    
-    # Небольшая пауза для запуска health check
-    import time
-    time.sleep(2)
-    
-    print("🚀 Запуск бота с health check...")
+    print("🚀 Запуск бота...")
     
     # Запускаем бота
     bot = SimpleRaidBot(TOKEN)
