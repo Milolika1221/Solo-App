@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, date
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
+from aiogram.client.default import DefaultBotProperties
 from aiogram.types import (
     ReplyKeyboardMarkup,
     KeyboardButton,
@@ -33,7 +34,7 @@ if not TOKEN:
 
 class SimpleRaidBot:
     def __init__(self, token):
-        self.bot = Bot(token=token, parse_mode='HTML')
+        self.bot = Bot(token=token, default=DefaultBotProperties(parse_mode='HTML'))
         self.dp = Dispatcher()
         self.setup_handlers()
         self.init_database()
