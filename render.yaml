@@ -2,6 +2,7 @@ services:
   - type: web
     name: raid-system-bot
     env: python
+    pythonVersion: 3.11.11
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python main.py
