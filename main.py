@@ -14,6 +14,7 @@ import os
 from dotenv import load_dotenv
 import json
 import random
+from health_check import start_health_check
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -32,7 +33,7 @@ if not TOKEN:
 
 class SimpleRaidBot:
     def __init__(self, token):
-        self.bot = Bot(token=token)
+        self.bot = Bot(token=token, parse_mode='HTML')
         self.dp = Dispatcher()
         self.setup_handlers()
         self.init_database()
@@ -3474,6 +3475,9 @@ E → D → C → B → A → S
 
     async def run(self):
         try:
+            # Запускаем health check сервер для UptimeRobot
+            start_health_check()
+            
             # Запускаем напоминания
             asyncio.create_task(self.send_skin_care_reminders())
 
