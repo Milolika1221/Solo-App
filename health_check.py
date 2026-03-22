@@ -1,33 +1,48 @@
 #!/usr/bin/env python3
 """
-Health check endpoint для Render
+Health check server for keeping the bot alive on Render.com
 """
-from flask import Flask
+
+from flask import Flask, jsonify
 from threading import Thread
-import asyncio
 import logging
 import os
 
 app = Flask(__name__)
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+
 @app.route("/")
+def index():
+    """Root endpoint for health check"""
+    return """
+    <html>
+        <head><title>RAID SYSTEM Bot</title></head>
+        <body>
+            <h1>⚔️ RAID SYSTEM</h1>
+            <p>Бот работает нормально!</p>
+        </body>
+    </html>
+    """
+
+
 @app.route("/health")
-@app.route("/ping")
 def health_check():
-    """Health check endpoint для UptimeRobot"""
-    return "🤖 Bot is alive!", 200
+    """Health check endpoint for UptimeRobot/Render"""
+    return jsonify({"status": "ok", "message": "Bot is running"}), 200
+
 
 def run_health_check():
-    """Запуск health check сервера"""
+    """Run the Flask health check server"""
     port = int(os.environ.get('PORT', 8080))
     app.run(host="0.0.0.0", port=port, debug=False)
 
+
 def start_health_check():
-    """Запуск health check в отдельном потоке"""
+    """Start health check in a separate thread"""
     health_thread = Thread(target=run_health_check, daemon=True)
     health_thread.start()
     port = int(os.environ.get('PORT', 8080))
     logging.info(f"🌐 Health check запущен на порту {port}")
-
-# Экспортируем для использования в main.py
-__all__ = ['start_health_check']
