@@ -19,7 +19,7 @@ from datetime import datetime, date
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
-from aiogram.types import types, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 
 from database import DatabaseManager
 from services import UserService, EnglishService, QuestService
@@ -73,7 +73,7 @@ class RaidSystemBot:
         
         logger.info(f"{Emoji.ROBOT} Бот инициализирован")
     
-    async def show_main_menu(self, message: types.Message):
+    async def show_main_menu(self, message: Message):
         """
         Показывает главное меню пользователю.
         
