@@ -21,6 +21,7 @@ class Emoji:
     QUESTION = "❓"
     LOCK = "🔒"
     UNLOCK = "🔓"
+    CROSS = "❌"
     
     # Прогресс
     COMPLETED = "✅"
@@ -30,6 +31,7 @@ class Emoji:
     TROPHY = "🏆"
     TARGET = "🎯"
     CHART = "📊"
+    CROWN = "👑"
     
     # Характеристики
     POWER = "🥊"  # Боевая мощь

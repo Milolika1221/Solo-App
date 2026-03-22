@@ -48,6 +48,7 @@ class BotHandlers:
         self.dp.message.register(self.cmd_start, Command("start"))
         self.dp.message.register(self.cmd_help, Command("help"))
         self.dp.message.register(self.cmd_stats, Command("stats"))
+        self.dp.message.register(self.cmd_restart_db, Command("restart_db"))
         
         # Обработчики главного меню (Reply клавиатура)
         self.dp.message.register(
@@ -158,6 +159,87 @@ E → D → C → B → A → S
     async def cmd_stats(self, message: types.Message):
         """Обработчик команды /stats - алиас для handle_stats"""
         await self.handle_stats(message)
+    
+    async def cmd_restart_db(self, message: types.Message):
+        """
+        Обработчик команды /restart_db (только для администратора).
+        Пересоздает все таблицы базы данных.
+        """
+        user_id = message.from_user.id
+        
+        # Проверяем права администратора
+        if not self.bot.db.is_admin(user_id):
+            await message.answer(f"{Emoji.WARNING} У тебя нет прав для этой команды.")
+            return
+        
+        try:
+            # Запрашиваем подтверждение
+            from keyboards import KeyboardManager
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text=f"{Emoji.WARNING} Да, пересоздать БД",
+                            callback_data="admin_restart_db_confirm"
+                        ),
+                        InlineKeyboardButton(
+                            text=f"{Emoji.CROSS} Отмена",
+                            callback_data="admin_restart_db_cancel"
+                        )
+                    ]
+                ]
+            )
+            
+            await message.answer(
+                f"{Emoji.WARNING} <b>ВНИМАНИЕ!</b>\n\n"
+                f"Это действие удалит ВСЕ данные и пересоздаст базу данных.\n"
+                f"Ты уверен?",
+                reply_markup=keyboard
+            )
+            
+        except Exception as e:
+            logger.error(f"{Emoji.ERROR} Ошибка в cmd_restart_db: {e}")
+            await message.answer(f"{Emoji.ERROR} Произошла ошибка.")
+    
+    async def handle_admin_callback(self, callback: types.CallbackQuery, action: str, user_id: int):
+        """Обработчик админских callback-команд."""
+        if action == "admin_restart_db_confirm":
+            try:
+                # Закрываем текущее соединение
+                self.bot.db.conn.close()
+                
+                # Удаляем файл базы данных
+                import os
+                db_path = "bot_data.db"
+                if os.path.exists(db_path):
+                    os.remove(db_path)
+                
+                # Пересоздаем подключение и таблицы
+                from database import DatabaseManager
+                self.bot.db = DatabaseManager()
+                
+                # Пользователь остается админом
+                self.bot.db.execute(
+                    "INSERT INTO users (user_id, is_admin, registration_completed) VALUES (?, 1, 1)",
+                    (user_id,)
+                )
+                self.bot.db.commit()
+                
+                await callback.message.edit_text(
+                    f"{Emoji.SUCCESS} <b>База данных пересоздана!</b>\n\n"
+                    f"Все таблицы созданы заново.\n"
+                    f"Ты назначен администратором."
+                )
+                await callback.answer("БД пересоздана")
+                
+            except Exception as e:
+                logger.error(f"{Emoji.ERROR} Ошибка пересоздания БД: {e}")
+                await callback.message.edit_text(f"{Emoji.ERROR} Ошибка: {e}")
+                await callback.answer("Ошибка")
+                
+        elif action == "admin_restart_db_cancel":
+            await callback.message.edit_text(f"{Emoji.CROSS} Операция отменена.")
+            await callback.answer("Отменено")
     
     # ========================================
     # MESSAGE HANDLERS (Главное меню)
@@ -450,6 +532,11 @@ E → D → C → B → A → S
             
             if action == "skin_care_evening":
                 await self.handle_skin_care(callback, user_id, "evening")
+                return
+            
+            # Админские команды
+            if action.startswith("admin_"):
+                await self.handle_admin_callback(callback, action, user_id)
                 return
             
             # Неизвестное действие

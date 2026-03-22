@@ -143,6 +143,7 @@ class UserService:
     def create_user(self, user_id: int) -> bool:
         """
         Создает нового пользователя в базе данных.
+        Первый зарегистрированный пользователь становится администратором.
         
         Args:
             user_id: ID пользователя Telegram
@@ -151,11 +152,22 @@ class UserService:
             bool: True если пользователь создан или уже существует
         """
         try:
+            # Проверяем, есть ли уже пользователи в базе
+            cursor = self.db.execute("SELECT COUNT(*) FROM users")
+            user_count = cursor.fetchone()[0]
+            
+            # Если это первый пользователь - делаем его админом
+            is_first_user = (user_count == 0)
+            
             self.db.execute(
-                "INSERT OR IGNORE INTO users (user_id) VALUES (?)",
-                (user_id,)
+                "INSERT OR IGNORE INTO users (user_id, is_admin) VALUES (?, ?)",
+                (user_id, 1 if is_first_user else 0)
             )
             self.db.commit()
+            
+            if is_first_user:
+                logger.info(f"{Emoji.CROWN} Первый пользователь {user_id} назначен администратором")
+            
             return True
         except Exception as e:
             logger.error(f"{Emoji.ERROR} Ошибка создания пользователя: {e}")

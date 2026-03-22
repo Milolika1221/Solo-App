@@ -72,6 +72,7 @@ class DatabaseManager:
                 last_english_test_date DATE,
                 anime_universe TEXT DEFAULT 'Solo Leveling',
                 registration_completed BOOLEAN DEFAULT 0,
+                is_admin BOOLEAN DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -202,6 +203,20 @@ class DatabaseManager:
         
         self.conn.commit()
         logger.info(f"{Emoji.SUCCESS} Таблицы базы данных инициализированы")
+    
+    def is_admin(self, user_id: int) -> bool:
+        """Проверить, является ли пользователь администратором."""
+        try:
+            cursor = self.execute("SELECT is_admin FROM users WHERE user_id = ?", (user_id,))
+            result = cursor.fetchone()
+            return result[0] if result else False
+        except Exception:
+            return False
+    
+    def set_admin(self, user_id: int, is_admin: bool = True):
+        """Назначить или снять права администратора."""
+        self.execute("UPDATE users SET is_admin = ? WHERE user_id = ?", (1 if is_admin else 0, user_id))
+        self.commit()
     
     def execute(self, query: str, params: tuple = ()):
         """
