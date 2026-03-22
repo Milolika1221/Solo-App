@@ -178,6 +178,138 @@ QUEST_REWARDS = {
     "weight_log": 10,
 }
 
+
+# ============================================
+# ЕЖЕДНЕВНЫЕ КВЕСТЫ ПО КАТЕГОРИЯМ
+# ============================================
+
+DAILY_QUESTS = {
+    "fitness": {
+        "title": f"{Emoji.POWER} Фитнес-квесты",
+        "description": "Тренируй тело как настоящий охотник",
+        "quests": [
+            {
+                "id": "morning_workout",
+                "name": "Утренняя тренировка",
+                "description": "Сделай разминку или тренировку утром (15-30 мин)",
+                "exp": 30,
+                "icon": Emoji.POWER,
+            },
+            {
+                "id": "stretching",
+                "name": "Растяжка",
+                "description": "Сделай растяжку для всего тела (10-15 мин)",
+                "exp": 20,
+                "icon": "🤸",
+            },
+            {
+                "id": "steps",
+                "name": "Шаги",
+                "description": "Пройди 8000+ шагов за день",
+                "exp": 25,
+                "icon": "👟",
+            },
+        ]
+    },
+    "learning": {
+        "title": f"{Emoji.BOOK} Квесты обучения",
+        "description": "Прокачивай разум и навыки",
+        "quests": [
+            {
+                "id": "english",
+                "name": "Английский язык",
+                "description": "Выполни все задания по английскому на сегодня",
+                "exp": 40,
+                "icon": Emoji.BOOK,
+            },
+            {
+                "id": "reading",
+                "name": "Чтение",
+                "description": "Прочитай 20+ страниц книги",
+                "exp": 35,
+                "icon": "📖",
+            },
+            {
+                "id": "video",
+                "name": "Обучающее видео",
+                "description": "Посмотри обучающее видео (20+ мин)",
+                "exp": 25,
+                "icon": "🎓",
+            },
+            {
+                "id": "journal",
+                "name": "Дневник",
+                "description": "Запиши свои мысли/цели в дневник",
+                "exp": 20,
+                "icon": "📓",
+            },
+        ]
+    },
+    "selfcare": {
+        "title": f"{Emoji.SPARKLES} Уход за собой",
+        "description": "Заботься о себе как о будущем S-ранге",
+        "quests": [
+            {
+                "id": "hair_care",
+                "name": "Уход за волосами",
+                "description": "Маска/масло/уход за волосами",
+                "exp": 15,
+                "icon": "💆",
+            },
+            {
+                "id": "shower",
+                "name": "Контрастный душ",
+                "description": "Примай контрастный душ",
+                "exp": 10,
+                "icon": "🚿",
+            },
+            {
+                "id": "early_sleep",
+                "name": "Ранний сон",
+                "description": "Ложись спать до 23:00",
+                "exp": 30,
+                "icon": "😴",
+            },
+            {
+                "id": "no_phone",
+                "name": "Цифровой детокс",
+                "description": "Не используй телефон 1 час после пробуждения",
+                "exp": 25,
+                "icon": "📵",
+            },
+            {
+                "id": "cleaning",
+                "name": "Уборка",
+                "description": "Убери свое пространство (15+ мин)",
+                "exp": 20,
+                "icon": "🧹",
+            },
+            {
+                "id": "healthy_food",
+                "name": "Здоровое питание",
+                "description": "Ешь здоровую еду весь день",
+                "exp": 30,
+                "icon": "🥗",
+            },
+            {
+                "id": "water",
+                "name": "Вода",
+                "description": "Выпей 8 стаканов воды",
+                "exp": 5,
+                "icon": "💧",
+            },
+            {
+                "id": "skin_care",
+                "name": "Уход за кожей",
+                "description": "Утренний и вечерний уход за кожей",
+                "exp": 5,
+                "icon": Emoji.SPARKLES,
+            },
+        ]
+    }
+}
+
+
 # ============================================
 # НАСТРОЙКИ БОТА
 # ============================================
@@ -496,6 +628,356 @@ ENGLISH_LEVEL_TO_SET = {
     "B2": "advanced",
     "C1": "advanced",
     "C2": "advanced"
+}
+
+
+# ============================================
+# ТЕСТЫ ДЛЯ ПОВЫШЕНИЯ УРОВНЯ АНГЛИЙСКОГО
+# ============================================
+
+ENGLISH_TESTS = {
+    "A1": {
+        "title": "🌿 Тест на уровень A1 (E-ранг)",
+        "description": "Проверка базовых знаний английского",
+        "pass_score": 7,
+        "questions": [
+            {
+                "question": "Как переводится 'I am a hunter'?",
+                "options": ["Я охотник", "Ты охотник", "Он охотник", "Мы охотники"],
+                "correct": 0
+            },
+            {
+                "question": "Выберите правильную форму: 'She _____ to school every day'",
+                "options": ["go", "goes", "going", "gone"],
+                "correct": 1
+            },
+            {
+                "question": "Какое слово означает 'система'?",
+                "options": ["shadow", "system", "power", "level"],
+                "correct": 1
+            },
+            {
+                "question": "Переведите 'I wake up at 7 AM'",
+                "options": ["Я ложусь спать в 7 утра", "Я просыпаюсь в 7 утра", "Я иду в школу в 7 утра", "Я ем завтрак в 7 утра"],
+                "correct": 1
+            },
+            {
+                "question": "Выберите правильный артикль: 'I have _____ cat'",
+                "options": ["a", "an", "the", "-"],
+                "correct": 0
+            },
+            {
+                "question": "Какое слово НЕ относится к цветам?",
+                "options": ["red", "blue", "run", "green"],
+                "correct": 2
+            },
+            {
+                "question": "Выберите правильное множественное число: 'one child - two _____'",
+                "options": ["childs", "children", "childes", "child"],
+                "correct": 1
+            },
+            {
+                "question": "Переведите 'The dungeon is dangerous'",
+                "options": ["Подземелье безопасно", "Подземелье опасно", "Подземелье большое", "Подземелье старое"],
+                "correct": 1
+            },
+            {
+                "question": "Выберите правильный вопрос: '_____ you like anime?'",
+                "options": ["Do", "Does", "Is", "Are"],
+                "correct": 0
+            },
+            {
+                "question": "Какое число следует за 'six'?",
+                "options": ["five", "seven", "eight", "nine"],
+                "correct": 1
+            }
+        ]
+    },
+    "A2": {
+        "title": "🌱 Тест на уровень A2 (D-ранг)",
+        "description": "Проверка базового общения",
+        "pass_score": 7,
+        "questions": [
+            {
+                "question": "Выберите правильное время: 'Yesterday I _____ a new skill'",
+                "options": ["learn", "learned", "have learned", "learning"],
+                "correct": 1
+            },
+            {
+                "question": "Как переводится 'I have been waiting for 2 hours'?",
+                "options": ["Я ждал 2 часа", "Я жду 2 часа", "Я буду ждать 2 часа", "Я ждал вчера 2 часа"],
+                "correct": 0
+            },
+            {
+                "question": "Выберите правильный предлог: 'I am interested _____ learning English'",
+                "options": ["on", "in", "at", "for"],
+                "correct": 1
+            },
+            {
+                "question": "Какое слово является синонимом к 'strong'?",
+                "options": ["weak", "powerful", "slow", "small"],
+                "correct": 1
+            },
+            {
+                "question": "Выберите правильную форму: 'If I _____ enough money, I will buy a new sword'",
+                "options": ["have", "had", "will have", "would have"],
+                "correct": 0
+            },
+            {
+                "question": "Переведите 'The monster was defeated by the hunter'",
+                "options": ["Охотник победил монстра", "Монстр победил охотника", "Охотник и монстр сражались", "Монстр был побежден охотником"],
+                "correct": 3
+            },
+            {
+                "question": "Выберите правильное слово: 'This dungeon is _____ than the last one'",
+                "options": ["more dangerous", "dangerouser", "most dangerous", "dangerous"],
+                "correct": 0
+            },
+            {
+                "question": "Какое предложение построено правильно?",
+                "options": ["I not understand", "I don't understand", "I no understand", "I understanding not"],
+                "correct": 1
+            },
+            {
+                "question": "Выберите правильный артикль: '_____ Sun gives us light'",
+                "options": ["A", "An", "The", "-"],
+                "correct": 2
+            },
+            {
+                "question": "Переведите 'I need to level up quickly'",
+                "options": ["Мне нужно быстро повысить уровень", "Мне нужно медленно повысить уровень", "Я хочу снизить уровень", "Я не хочу повышать уровень"],
+                "correct": 0
+            }
+        ]
+    },
+    "B1": {
+        "title": "⚔️ Тест на уровень B1 (C-ранг)",
+        "description": "Проверка среднего уровня",
+        "pass_score": 7,
+        "questions": [
+            {
+                "question": "Выберите правильную форму: 'By the time we arrived, the boss _____'",
+                "options": ["already defeated", "had already been defeated", "has already defeated", "was already defeating"],
+                "correct": 1
+            },
+            {
+                "question": "Какое слово НЕ является наречием?",
+                "options": ["quickly", "carefully", "beautiful", "suddenly"],
+                "correct": 2
+            },
+            {
+                "question": "Выберите правильный фразовый глагол: 'The raid was called _____ due to bad weather'",
+                "options": ["off", "on", "out", "up"],
+                "correct": 0
+            },
+            {
+                "question": "Переведите 'I would have leveled up if I had trained harder'",
+                "options": ["Я повышу уровень, если буду тренироваться усерднее", "Я бы повысил уровень, если бы тренировался усерднее", "Я повысил уровень, потому что тренировался усерднее", "Я не повышу уровень, даже если буду тренироваться"],
+                "correct": 1
+            },
+            {
+                "question": "Выберите правильную конструкцию: 'Not only _____ strong, but also fast'",
+                "options": ["he is", "is he", "he was", "was he"],
+                "correct": 1
+            },
+            {
+                "question": "Какой вариант использует правильный модальный глагол: 'You _____ train every day to get stronger'",
+                "options": ["must", "can", "may", "might"],
+                "correct": 0
+            },
+            {
+                "question": "Выберите правильное слово: 'Despite _____ tired, he continued training'",
+                "options": ["being", "be", "was", "been"],
+                "correct": 0
+            },
+            {
+                "question": "Переведите 'The system is said to be ancient'",
+                "options": ["Говорят, что система древняя", "Система говорит, что она древняя", "Древняя система говорит", "Система древняя, как говорят"],
+                "correct": 0
+            },
+            {
+                "question": "Выберите правильную форму: 'I wish I _____ more EXP yesterday'",
+                "options": ["got", "had got", "have got", "get"],
+                "correct": 1
+            },
+            {
+                "question": "Какое предложение содержит герундий?",
+                "options": ["I train every day", "Training is important", "I trained yesterday", "I will train tomorrow"],
+                "correct": 1
+            }
+        ]
+    },
+    "B2": {
+        "title": "💫 Тест на уровень B2 (B-ранг)",
+        "description": "Проверка хорошего уровня",
+        "pass_score": 7,
+        "questions": [
+            {
+                "question": "Выберите правильную конструкцию: 'Hardly _____ started when the alarm went off'",
+                "options": ["had we", "we had", "have we", "we have"],
+                "correct": 0
+            },
+            {
+                "question": "Какое слово является причастием II от 'choose'?",
+                "options": ["chose", "chosen", "choosing", "choosed"],
+                "correct": 1
+            },
+            {
+                "question": "Выберите правильный инверсионный вариант: 'Never before _____ such a powerful monster'",
+                "options": ["I saw", "have I seen", "I have seen", "saw I"],
+                "correct": 1
+            },
+            {
+                "question": "Переведите 'Had I known about the trap, I wouldn't have entered the dungeon'",
+                "options": ["Если бы я знал о ловушке, я бы не вошел в подземелье", "Если бы я знал о ловушке, я вошел бы в подземелье", "Когда я узнал о ловушке, я вошел в подземелье", "Я знал о ловушке и вошел в подземелье"],
+                "correct": 0
+            },
+            {
+                "question": "Выберите правильную форму: 'The weapon _____ is legendary'",
+                "options": ["wielding", "wielded by him", "he wields it", "which he wields it"],
+                "correct": 1
+            },
+            {
+                "question": "Какое предложение использует сослагательное наклонение правильно?",
+                "options": ["If I am stronger, I win", "If I were stronger, I would win", "If I was stronger, I win", "If I be stronger, I would win"],
+                "correct": 1
+            },
+            {
+                "question": "Выберите правильный вариант: 'It's high time we _____ to the boss'",
+                "options": ["go", "went", "have gone", "going"],
+                "correct": 1
+            },
+            {
+                "question": "Переведите 'No sooner had he leveled up than he faced a new challenge'",
+                "options": ["Как только он повысил уровень, он столкнулся с новым вызовом", "Он не повысил уровень и не столкнулся с вызовом", "Он повысил уровень, но не столкнулся с вызовом", "Прежде чем он повысил уровень, он столкнулся с вызовом"],
+                "correct": 0
+            },
+            {
+                "question": "Выберите правильную конструкцию с 'need': 'Your skills _____ checking'",
+                "options": ["need", "need to", "need to be", "needs"],
+                "correct": 2
+            },
+            {
+                "question": "Какое предложение содержит эллипсис?",
+                "options": ["I train every day and I eat well", "I train every day and eat well", "I train every day", "Training every day is good"],
+                "correct": 1
+            }
+        ]
+    },
+    "C1": {
+        "title": "🌟 Тест на уровень C1 (A-ранг)",
+        "description": "Проверка продвинутого уровня",
+        "pass_score": 7,
+        "questions": [
+            {
+                "question": "Выберите правильную конструкцию: 'Were I in your position, I _____ the quest'",
+                "options": ["accept", "would accept", "will accept", "accepted"],
+                "correct": 1
+            },
+            {
+                "question": "Какое слово НЕ является синонимом к 'ephemeral'?",
+                "options": ["transient", "fleeting", "permanent", "evanescent"],
+                "correct": 2
+            },
+            {
+                "question": "Выберите правильный вариант: 'Not until the final battle _____ the true extent of his power'",
+                "options": ["did we see", "we saw", "we did see", "saw we"],
+                "correct": 0
+            },
+            {
+                "question": "Переведите 'Little did they know what awaited them in the A-rank dungeon'",
+                "options": ["Они мало знали, что их ждет", "Они почти не знали", "Они не знали, что их ждет в подземелье A-ранга", "Мало кто знал, что их ждет"],
+                "correct": 2
+            },
+            {
+                "question": "Выберите правильную форму: 'The dungeon, _____ for centuries, was finally conquered'",
+                "options": ["to be unexplored", "having been unexplored", "being unexplored", "unexplored"],
+                "correct": 1
+            },
+            {
+                "question": "Какое предложение использует подчинительную клаузалу с 'were' правильно?",
+                "options": ["I wish I were stronger", "If I were go", "Were I goes", "I were stronger yesterday"],
+                "correct": 0
+            },
+            {
+                "question": "Выберите правильный вариант с 'but for': '_____ his quick thinking, we would have failed'",
+                "options": ["But for", "Except for", "Without for", "Unless for"],
+                "correct": 0
+            },
+            {
+                "question": "Переведите 'Should you encounter any difficulty, do not hesitate to ask'",
+                "options": ["Если вы столкнетесь с трудностями, не стесняйтесь спросить", "Вы должны столкнуться с трудностями", "Когда вы столкнетесь с трудностями", "Не стесняйтесь спросить"],
+                "correct": 0
+            },
+            {
+                "question": "Выберите правильный порядок слов: 'Under no circumstances _____ give up'",
+                "options": ["you should", "should you", "you would", "would you"],
+                "correct": 1
+            },
+            {
+                "question": "Какое предложение использует сложное подлежащее?",
+                "options": ["I think he is right", "It is known that he is strong", "He is strong", "Being strong is good"],
+                "correct": 1
+            }
+        ]
+    },
+    "C2": {
+        "title": "👑 Тест на уровень C2 (S-ранг)",
+        "description": "Проверка владения языком",
+        "pass_score": 8,
+        "questions": [
+            {
+                "question": "Выберите правильную конструкцию: '_____ the difficulty of the raid, the team pressed on'",
+                "options": ["Regardless of", "Regardless", "Despite of", "Although"],
+                "correct": 0
+            },
+            {
+                "question": "Какое слово лучше всего подходит: 'His _____ to detail made him an excellent strategist'",
+                "options": ["meticulousness", "carelessness", "indifference", "ignorance"],
+                "correct": 0
+            },
+            {
+                "question": "Выберите правильный вариант: 'Seldom _____ such a formidable opponent'",
+                "options": ["have I faced", "I have faced", "faced I", "I faced have"],
+                "correct": 0
+            },
+            {
+                "question": "Переведите 'Had it not been for the healer's intervention, the tank would have perished'",
+                "options": ["Если бы не вмешательство целителя, танк бы погиб", "Целитель вмешался, и танк погиб", "Танк погиб из-за целителя", "Целитель не вмешался, и танк выжил"],
+                "correct": 0
+            },
+            {
+                "question": "Выберите правильную конструкцию: 'So powerful _____ that he defeated the boss single-handedly'",
+                "options": ["he was", "was he", "he is", "is he"],
+                "correct": 1
+            },
+            {
+                "question": "Какое предложение использует архаичную/литературную форму?",
+                "options": ["He doesn't know", "He knows not", "He not knows", "He is not knowing"],
+                "correct": 1
+            },
+            {
+                "question": "Выберите правильный вариант с 'let alone': 'He can't defeat an E-rank monster, _____ an S-rank boss'",
+                "options": ["let alone", "leave alone", "let along", "alone let"],
+                "correct": 0
+            },
+            {
+                "question": "Переведите 'Be that as it may, we must proceed with caution'",
+                "options": ["Как бы то ни было, мы должны действовать осторожно", "Пусть будет так, мы должны остановиться", "Как это может быть, мы должны продолжить", "Будь это так, мы будем осторожны"],
+                "correct": 0
+            },
+            {
+                "question": "Выберите правильный вариант: 'Were it not for the system, he _____ an ordinary hunter'",
+                "options": ["would be", "would have been", "will be", "is"],
+                "correct": 1
+            },
+            {
+                "question": "Какое предложение использует эмфатический 'do' правильно?",
+                "options": ["I do train every day", "Do I train every day", "I do training every day", "I does train every day"],
+                "correct": 0
+            }
+        ]
+    }
 }
 
 

@@ -72,6 +72,13 @@ class BotHandlers:
             F.text == "🍽️ Питание"
         )
         
+        # Обработчик ввода веса (числовое сообщение)
+        self.dp.message.register(
+            self.handle_weight_input,
+            F.text.regexp(r"^\d+(\.\d+)?$"),
+            self.is_waiting_weight_input
+        )
+        
         # Обработчик callback запросов (inline кнопки)
         self.dp.callback_query.register(self.handle_callback)
         
@@ -316,8 +323,16 @@ E → D → C → B → A → S
         Показывает категории ежедневных квестов.
         """
         try:
+            from constants import DAILY_QUESTS, Emoji
+            
             quest_text = f"{Emoji.CLIPBOARD} <b>Ежедневные квесты</b>\n\n"
             quest_text += "Выбери категорию заданий:\n\n"
+            
+            # Добавляем описание категорий
+            for category_key, category_data in DAILY_QUESTS.items():
+                quest_count = len(category_data.get("quests", []))
+                quest_text += f"{category_data['title']} - {quest_count} квестов\n"
+                quest_text += f"<i>{category_data['description']}</i>\n\n"
             
             from keyboards import KeyboardManager
             keyboard = KeyboardManager.get_quest_categories_keyboard()
@@ -331,31 +346,74 @@ E → D → C → B → A → S
     async def handle_workouts(self, message: types.Message):
         """
         Обработчик кнопки 'Тренировки'.
-        Показывает доступные вселенные для тренировок.
+        Сразу показывает ранги для вселенной пользователя (выбранной при регистрации).
         """
         try:
             user_id = message.from_user.id
             
-            # Получаем уровень пользователя
-            stats = self.bot.user_service.get_user_stats(user_id)
-            if not stats:
+            # Получаем данные пользователя
+            cursor = self.bot.db.execute(
+                "SELECT level, anime_universe FROM users WHERE user_id = ?",
+                (user_id,)
+            )
+            result = cursor.fetchone()
+            if not result:
                 await message.answer(MESSAGES["user_not_found"])
                 return
             
-            from keyboards import KeyboardManager
-            available_ranks = self.bot.quest_service.get_available_ranks(stats["level"])
+            user_level, universe = result
+            universe = universe or "solo_leveling"
             
-            workout_text = f"""
-{Emoji.SWORD} <b>Тренировки</b>
-
-Выбери вселенную для тренировки:
-
-<b>Доступные ранги:</b> {', '.join(available_ranks)}
-            """
+            # Преобразуем название вселенной в ключ
+            universe_key = None
+            for key, name in ANIME_UNIVERSES.items():
+                if name == universe:
+                    universe_key = key
+                    break
+            if not universe_key:
+                universe_key = "solo_leveling"
             
-            keyboard = KeyboardManager.get_workout_universes_keyboard()
+            # Показываем сразу ранги для выбранной вселенной
+            from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+            from constants import WORKOUT_LIBRARY
             
-            await message.answer(workout_text, reply_markup=keyboard)
+            available_ranks = self.bot.quest_service.get_available_ranks(user_level)
+            universe_name = ANIME_UNIVERSES.get(universe_key, universe_key)
+            
+            # Получаем тренировки для этой вселенной
+            universe_workouts = WORKOUT_LIBRARY.get(universe_key, {})
+            available_universe_ranks = [r for r in available_ranks if r in universe_workouts]
+            
+            if not available_universe_ranks:
+                available_universe_ranks = ["E"]
+            
+            text = f"{Emoji.SWORD} <b>{universe_name}</b>\n\n"
+            text += f"{Emoji.TARGET} <b>Доступные ранги:</b>\n"
+            
+            for rank in available_universe_ranks:
+                workout = universe_workouts.get(rank, {})
+                desc = workout.get("description", "Тренировка")
+                exp = workout.get("exp", 20)
+                text += f"{Emoji.FIRE} <b>Ранг {rank}</b> - {desc} (+{exp} EXP)\n"
+            
+            text += f"\n{Emoji.INFO} Выбери ранг для просмотра деталей:"
+            
+            # Создаем клавиатуру с рангами
+            keyboard_buttons = []
+            for rank in available_universe_ranks:
+                keyboard_buttons.append([InlineKeyboardButton(
+                    text=f"{Emoji.SWORD} Ранг {rank}",
+                    callback_data=f"workout_rank_{universe_key}_{rank}"
+                )])
+            
+            keyboard_buttons.append([InlineKeyboardButton(
+                text=f"{Emoji.CHART} Главное меню",
+                callback_data="return_main_menu"
+            )])
+            
+            keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+            
+            await message.answer(text, reply_markup=keyboard)
             
         except Exception as e:
             logger.error(f"{Emoji.ERROR} Ошибка в handle_workouts: {e}")
@@ -455,6 +513,53 @@ E → D → C → B → A → S
             logger.error(f"{Emoji.ERROR} Ошибка в handle_nutrition: {e}")
             await message.answer(MESSAGES["error_generic"])
     
+    # Словарь для отслеживания пользователей, ожидающих ввода веса
+    _waiting_weight_input = {}
+    
+    async def is_waiting_weight_input(self, message: types.Message) -> bool:
+        """Проверяет, ожидается ли ввод веса от пользователя."""
+        user_id = message.from_user.id
+        return self._waiting_weight_input.get(user_id, False)
+    
+    async def handle_weight_input(self, message: types.Message):
+        """
+        Обработчик ввода веса.
+        Сохраняет вес пользователя в базу данных.
+        """
+        try:
+            user_id = message.from_user.id
+            weight_text = message.text.strip()
+            
+            # Парсим вес
+            try:
+                weight = float(weight_text)
+                if weight < 30 or weight > 300:
+                    await message.answer(f"{Emoji.WARNING} Введи реалистичный вес (30-300 кг)")
+                    return
+            except ValueError:
+                await message.answer(f"{Emoji.WARNING} Введи число, например: 65.5")
+                return
+            
+            # Сохраняем вес
+            self.bot.db.execute(
+                "UPDATE users SET weight = ? WHERE user_id = ?",
+                (weight, user_id)
+            )
+            self.bot.db.commit()
+            
+            # Сбрасываем флаг ожидания
+            self._waiting_weight_input[user_id] = False
+            
+            await message.answer(
+                f"{Emoji.SUCCESS} <b>Вес записан!</b>\n\n"
+                f"{Emoji.SCALE} Текущий вес: {weight} кг",
+                reply_markup=KeyboardManager.get_main_keyboard()
+            )
+            
+        except Exception as e:
+            logger.error(f"{Emoji.ERROR} Ошибка при сохранении веса: {e}")
+            await message.answer(f"{Emoji.ERROR} Произошла ошибка. Попробуй позже.")
+    
     # ========================================
     # CALLBACK HANDLER
     # ========================================
@@ -488,8 +593,19 @@ E → D → C → B → A → S
                 return
             
             # Квесты
-            if action.startswith("quest_"):
-                await callback.answer(f"{Emoji.SUCCESS} Квест в разработке")
+            if action == "quest_menu":
+                await self.handle_quests(callback.message)
+                await callback.answer()
+                return
+            
+            if action.startswith("quest_category_"):
+                category = action.replace("quest_category_", "")
+                await self.show_quest_category(callback, user_id, category)
+                return
+            
+            if action.startswith("complete_quest_"):
+                quest_id = action.replace("complete_quest_", "")
+                await self.complete_quest(callback, user_id, quest_id)
                 return
             
             # Тренировки
@@ -526,11 +642,39 @@ E → D → C → B → A → S
                 return
             
             if action.startswith("english_test_"):
-                await callback.answer(f"{Emoji.SUCCESS} Тест в разработке")
+                # Получаем уровень теста из callback_data
+                test_level = action.replace("english_test_", "")
+                await self.start_english_test(callback, user_id, test_level)
+                return
+            
+            # Обработка тестов - начало и ответы
+            if action.startswith("test_start_"):
+                test_level = action.replace("test_start_", "")
+                # Показываем первый вопрос
+                await self.show_test_question(callback, user_id)
+                await callback.answer()
+                return
+            
+            if action.startswith("test_answer_"):
+                # Формат: test_answer_{level}_{question_idx}_{answer_idx}
+                parts = action.split("_")
+                if len(parts) >= 5:
+                    level = parts[2]
+                    question_idx = int(parts[3])
+                    answer_idx = int(parts[4])
+                    await self.handle_test_answer(callback, user_id, level, question_idx, answer_idx)
+                return
+            
+            # Меню английского языка
+            if action == "english_menu":
+                await self.handle_english(callback.message)
+                await callback.answer()
                 return
             
             # Запись веса
             if action == "weight_log":
+                # Устанавливаем флаг ожидания ввода веса
+                self._waiting_weight_input[user_id] = True
                 await callback.message.answer(
                     f"{Emoji.SCALE} Введи свой текущий вес в кг (например: 65.5):"
                 )
@@ -666,6 +810,123 @@ E → D → C → B → A → S
             )
             await callback.answer()
             return
+    
+    # ========================================
+    # КВЕСТЫ
+    # ========================================
+    
+    async def show_quest_category(self, callback: types.CallbackQuery, user_id: int, category: str):
+        """
+        Показывает квесты выбранной категории.
+        """
+        try:
+            from constants import DAILY_QUESTS, Emoji
+            
+            category_data = DAILY_QUESTS.get(category)
+            if not category_data:
+                await callback.message.answer(f"{Emoji.ERROR} Категория не найдена")
+                await callback.answer()
+                return
+            
+            # Формируем текст с квестами
+            text = f"{category_data['title']}\n\n"
+            text += f"<i>{category_data['description']}</i>\n\n"
+            text += f"{Emoji.CLIPBOARD} <b>Доступные квесты:</b>\n\n"
+            
+            keyboard_buttons = []
+            for quest in category_data.get("quests", []):
+                icon = quest.get("icon", "📝")
+                name = quest.get("name", "Квест")
+                description = quest.get("description", "")
+                exp = quest.get("exp", 15)
+                quest_id = quest.get("id", "")
+                
+                text += f"{icon} <b>{name}</b> (+{exp} EXP)\n"
+                text += f"<i>{description}</i>\n\n"
+                
+                # Добавляем кнопку для выполнения квеста
+                keyboard_buttons.append([InlineKeyboardButton(
+                    text=f"{Emoji.SUCCESS} {name}",
+                    callback_data=f"complete_quest_{quest_id}"
+                )])
+            
+            # Добавляем кнопку назад
+            keyboard_buttons.append([InlineKeyboardButton(
+                text=f"{Emoji.BACK} К категориям",
+                callback_data="quest_menu"
+            )])
+            
+            keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+            
+            await callback.message.answer(text, reply_markup=keyboard)
+            await callback.answer()
+            
+        except Exception as e:
+            logger.error(f"{Emoji.ERROR} Ошибка в show_quest_category: {e}")
+            await callback.answer(f"{Emoji.ERROR} Ошибка")
+    
+    async def complete_quest(self, callback: types.CallbackQuery, user_id: int, quest_id: str):
+        """
+        Обрабатывает выполнение квеста.
+        """
+        try:
+            from constants import DAILY_QUESTS, QUEST_REWARDS, Emoji
+            
+            # Находим квест по ID
+            quest_info = None
+            category_name = ""
+            for cat_key, cat_data in DAILY_QUESTS.items():
+                for quest in cat_data.get("quests", []):
+                    if quest.get("id") == quest_id:
+                        quest_info = quest
+                        category_name = cat_data.get("title", "")
+                        break
+                if quest_info:
+                    break
+            
+            if not quest_info:
+                await callback.answer(f"{Emoji.ERROR} Квест не найден")
+                return
+            
+            # Получаем награду
+            exp_reward = quest_info.get("exp", QUEST_REWARDS.get(quest_id, 20))
+            quest_name = quest_info.get("name", "Квест")
+            icon = quest_info.get("icon", "📝")
+            
+            # Начисляем опыт
+            new_level, level_up = self.bot.user_service.add_exp(
+                user_id, exp_reward, f"Квест: {quest_name}"
+            )
+            
+            # Формируем текст
+            text = f"{Emoji.SUCCESS} <b>Квест выполнен!</b>\n\n"
+            text += f"{icon} {quest_name}\n"
+            text += f"{Emoji.STAR} +{exp_reward} EXP\n\n"
+            
+            if level_up:
+                text += f"{Emoji.TROPHY} <b>Поздравляем! Новый уровень: {new_level}!</b>\n\n"
+            
+            text += f"{Emoji.FIRE} Отличная работа, Охотник!"
+            
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(
+                        text=f"{Emoji.CLIPBOARD} К квестам",
+                        callback_data="quest_menu"
+                    )],
+                    [InlineKeyboardButton(
+                        text=f"{Emoji.CHART} Главное меню",
+                        callback_data="return_main_menu"
+                    )],
+                ]
+            )
+            
+            await callback.message.answer(text, reply_markup=keyboard)
+            await callback.answer(f"+{exp_reward} EXP")
+            
+        except Exception as e:
+            logger.error(f"{Emoji.ERROR} Ошибка в complete_quest: {e}")
+            await callback.answer(f"{Emoji.ERROR} Ошибка")
     
     # ========================================
     # МЕТОДЫ ТРЕНИРОВОК
@@ -931,4 +1192,254 @@ E → D → C → B → A → S
             
         except Exception as e:
             logger.error(f"{Emoji.ERROR} Ошибка в complete_english_task: {e}")
+            await callback.answer(f"{Emoji.ERROR} Ошибка")
+    
+    # ========================================
+    # АНГЛИЙСКИЙ ЯЗЫК - ТЕСТЫ НА УРОВЕНЬ
+    # ========================================
+    
+    # Хранение состояния тестов для пользователей
+    _test_sessions = {}
+    
+    async def start_english_test(self, callback: types.CallbackQuery, user_id: int, test_level: str):
+        """
+        Начинает тест на повышение уровня английского.
+        
+        Args:
+            callback: Объект callback запроса
+            user_id: ID пользователя
+            test_level: Уровень теста (A1, A2, B1 и т.д.)
+        """
+        try:
+            from constants import ENGLISH_TESTS
+            
+            # Получаем данные теста
+            test_data = ENGLISH_TESTS.get(test_level)
+            if not test_data:
+                await callback.message.answer(f"{Emoji.ERROR} Тест для уровня {test_level} не найден")
+                await callback.answer()
+                return
+            
+            # Проверяем, достаточно ли EXP для прохождения теста
+            stats = self.bot.user_service.get_user_stats(user_id)
+            current_level = stats.get("english_level", "A0")
+            current_exp = stats.get("english_exp", 0)
+            
+            # Получаем требования для следующего уровня
+            next_level_data = self.bot.english_service.get_english_level_requirements(test_level)
+            if not next_level_data:
+                await callback.message.answer(f"{Emoji.ERROR} Ошибка получения требований уровня")
+                await callback.answer()
+                return
+            
+            required_exp = next_level_data.get("exp_required", 100)
+            
+            if current_exp < required_exp:
+                await callback.message.answer(
+                    f"{Emoji.WARNING} <b>Недостаточно опыта!</b>\n\n"
+                    f"Для теста на уровень {test_level} нужно {required_exp} EXP\n"
+                    f"У тебя сейчас: {current_exp} EXP\n\n"
+                    f"{Emoji.BOOK} Продолжай выполнять задания по английскому!"
+                )
+                await callback.answer()
+                return
+            
+            # Инициализируем сессию теста
+            self._test_sessions[user_id] = {
+                "level": test_level,
+                "current_question": 0,
+                "correct_answers": 0,
+                "questions": test_data["questions"],
+                "test_data": test_data
+            }
+            
+            # Отправляем информацию о тесте
+            text = f"{Emoji.BOOK} <b>{test_data['title']}</b>\n\n"
+            text += f"{test_data['description']}\n\n"
+            text += f"{Emoji.INFO} <b>Всего вопросов:</b> {len(test_data['questions'])}\n"
+            text += f"{Emoji.TARGET} <b>Проходной балл:</b> {test_data['pass_score']}/{len(test_data['questions'])}\n\n"
+            text += f"{Emoji.WARNING} Внимательно читай вопросы и выбирай правильные ответы!"
+            
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(
+                        text=f"{Emoji.TARGET} Начать тест",
+                        callback_data=f"test_start_{test_level}"
+                    )],
+                    [InlineKeyboardButton(
+                        text=f"{Emoji.BACK} Отмена",
+                        callback_data="english_menu"
+                    )]
+                ]
+            )
+            
+            await callback.message.answer(text, reply_markup=keyboard)
+            await callback.answer()
+            
+        except Exception as e:
+            logger.error(f"{Emoji.ERROR} Ошибка в start_english_test: {e}")
+            await callback.answer(f"{Emoji.ERROR} Ошибка")
+    
+    async def show_test_question(self, callback: types.CallbackQuery, user_id: int):
+        """
+        Показывает текущий вопрос теста.
+        """
+        try:
+            session = self._test_sessions.get(user_id)
+            if not session:
+                await callback.message.answer(f"{Emoji.ERROR} Сессия теста не найдена")
+                return
+            
+            current_idx = session["current_question"]
+            questions = session["questions"]
+            test_level = session["level"]
+            
+            # Проверяем, закончились ли вопросы
+            if current_idx >= len(questions):
+                await self.finish_english_test(callback, user_id)
+                return
+            
+            question = questions[current_idx]
+            question_text = question["question"]
+            options = question["options"]
+            
+            # Формируем текст вопроса
+            text = f"{Emoji.BOOK} <b>Вопрос {current_idx + 1}/{len(questions)}</b>\n\n"
+            text += f"{question_text}\n\n"
+            
+            # Создаем клавиатуру с вариантами ответов
+            keyboard_buttons = []
+            for i, option in enumerate(options):
+                keyboard_buttons.append([InlineKeyboardButton(
+                    text=f"{i+1}. {option}",
+                    callback_data=f"test_answer_{test_level}_{current_idx}_{i}"
+                )])
+            
+            keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+            
+            await callback.message.answer(text, reply_markup=keyboard)
+            await callback.answer()
+            
+        except Exception as e:
+            logger.error(f"{Emoji.ERROR} Ошибка в show_test_question: {e}")
+            await callback.answer(f"{Emoji.ERROR} Ошибка")
+    
+    async def handle_test_answer(self, callback: types.CallbackQuery, user_id: int, level: str, question_idx: int, answer_idx: int):
+        """
+        Обрабатывает ответ на вопрос теста.
+        """
+        try:
+            session = self._test_sessions.get(user_id)
+            if not session:
+                await callback.message.answer(f"{Emoji.ERROR} Сессия теста не найдена")
+                await callback.answer()
+                return
+            
+            # Проверяем соответствие индекса вопроса
+            if question_idx != session["current_question"]:
+                await callback.answer(f"{Emoji.WARNING} Этот вопрос уже пройден")
+                return
+            
+            questions = session["questions"]
+            question = questions[question_idx]
+            correct_answer = question["correct"]
+            
+            # Проверяем правильность ответа
+            if answer_idx == correct_answer:
+                session["correct_answers"] += 1
+                await callback.answer(f"{Emoji.SUCCESS} Правильно!")
+            else:
+                correct_option = question["options"][correct_answer]
+                await callback.answer(f"{Emoji.ERROR} Неправильно! Ответ: {correct_option}")
+            
+            # Переходим к следующему вопросу
+            session["current_question"] += 1
+            
+            # Показываем следующий вопрос или завершаем тест
+            if session["current_question"] >= len(questions):
+                await self.finish_english_test(callback, user_id)
+            else:
+                await self.show_test_question(callback, user_id)
+            
+        except Exception as e:
+            logger.error(f"{Emoji.ERROR} Ошибка в handle_test_answer: {e}")
+            await callback.answer(f"{Emoji.ERROR} Ошибка")
+    
+    async def finish_english_test(self, callback: types.CallbackQuery, user_id: int):
+        """
+        Завершает тест и показывает результаты.
+        """
+        try:
+            session = self._test_sessions.get(user_id)
+            if not session:
+                await callback.message.answer(f"{Emoji.ERROR} Сессия теста не найдена")
+                return
+            
+            test_level = session["level"]
+            correct = session["correct_answers"]
+            total = len(session["questions"])
+            test_data = session["test_data"]
+            pass_score = test_data["pass_score"]
+            
+            # Определяем результат
+            passed = correct >= pass_score
+            
+            # Формируем текст результатов
+            if passed:
+                # Обновляем уровень в базе данных
+                self.bot.db.execute(
+                    "UPDATE users SET english_level = ?, english_exp = 0 WHERE user_id = ?",
+                    (test_level, user_id)
+                )
+                self.bot.db.commit()
+                
+                level_name = self.bot.english_service.get_english_rank_title(test_level)
+                
+                text = f"{Emoji.PARTY} <b>Тест пройден!</b>\n\n"
+                text += f"{Emoji.TARGET} Результат: {correct}/{total} правильных ответов\n"
+                text += f"{Emoji.TROPHY} <b>Новый уровень: {test_level}!</b>\n"
+                text += f"{level_name}\n\n"
+                text += f"{Emoji.STAR} Поздравляем с повышением, Охотник!"
+                
+                # Начисляем бонусный опыт
+                bonus_exp = 50
+                self.bot.user_service.add_exp(user_id, bonus_exp, f"Повышение уровня английского до {test_level}")
+                text += f"\n\n{Emoji.GIFT} Бонус: +{bonus_exp} EXP"
+            else:
+                text = f"{Emoji.ERROR} <b>Тест не пройден</b>\n\n"
+                text += f"{Emoji.TARGET} Результат: {correct}/{total} правильных ответов\n"
+                text += f"{Emoji.WARNING} Нужно набрать минимум {pass_score} баллов\n\n"
+                text += f"{Emoji.BOOK} Не расстраивайся! Продолжай тренироваться и попробуй снова позже."
+            
+            # Записываем результат теста в базу
+            self.bot.db.execute(
+                """
+                INSERT INTO english_test_results (user_id, test_date, from_level, to_level, score, passed)
+                VALUES (?, date('now'), ?, ?, ?, ?)
+                """,
+                (user_id, session["level"], test_level, correct, passed)
+            )
+            self.bot.db.commit()
+            
+            # Очищаем сессию
+            del self._test_sessions[user_id]
+            
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(
+                        text=f"{Emoji.BOOK} К английскому",
+                        callback_data="english_menu"
+                    )],
+                    [InlineKeyboardButton(
+                        text=f"{Emoji.CHART} Главное меню",
+                        callback_data="return_main_menu"
+                    )]
+                ]
+            )
+            
+            await callback.message.answer(text, reply_markup=keyboard)
+            await callback.answer()
+            
+        except Exception as e:
+            logger.error(f"{Emoji.ERROR} Ошибка в finish_english_test: {e}")
             await callback.answer(f"{Emoji.ERROR} Ошибка")
