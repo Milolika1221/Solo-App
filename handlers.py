@@ -128,7 +128,10 @@ class BotHandlers:
         """
         Обработчик команды /help.
         Показывает справку по использованию бота.
+        Для админов показывает дополнительные команды.
         """
+        user_id = message.from_user.id
+        
         help_text = f"""
 {Emoji.ROBOT} <b>RAID SYSTEM - Помощь</b>
 
@@ -151,9 +154,18 @@ class BotHandlers:
 
 <b>Система рангов:</b>
 E → D → C → B → A → S
-
-Удачи в рейде, Охотник!
         """
+        
+        # Показываем админские команды только для админов
+        if self.bot.db.is_admin(user_id):
+            help_text += f"""
+
+{Emoji.CROWN} <b>Админские команды:</b>
+{Emoji.WARNING} /restart_db - Пересоздать базу данных (опасно!)
+            """
+        
+        help_text += "\n\nУдачи в рейде, Охотник!"
+        
         await message.answer(help_text)
     
     async def cmd_stats(self, message: types.Message):
@@ -218,9 +230,9 @@ E → D → C → B → A → S
                 from database import DatabaseManager
                 self.bot.db = DatabaseManager()
                 
-                # Пользователь остается админом
+                # Пользователь остается админом (INSERT OR IGNORE на случай если уже существует)
                 self.bot.db.execute(
-                    "INSERT INTO users (user_id, is_admin, registration_completed) VALUES (?, 1, 1)",
+                    "INSERT OR IGNORE INTO users (user_id, is_admin, registration_completed) VALUES (?, 1, 1)",
                     (user_id,)
                 )
                 self.bot.db.commit()
