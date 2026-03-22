@@ -442,6 +442,11 @@ ENGLISH_DAILY_TASKS = {
         "exp": 15,
         "skills": ["vocabulary"],
         "tools": ["Memrise", "Anki", "Quizlet"],
+        "urls": [
+            {"name": "📱 Memrise", "url": "https://www.memrise.com/app/"},
+            {"name": "🗂️ Anki", "url": "https://apps.ankiweb.net/"},
+            {"name": "📝 Quizlet", "url": "https://quizlet.com/"}
+        ],
         "tips": [
             "Составь карточки с контекстом",
             "Повторяй слова вслух",
@@ -455,6 +460,11 @@ ENGLISH_DAILY_TASKS = {
         "exp": 20,
         "skills": ["listening"],
         "sources": ["YouTube", "English with Lucy", "BBC Learning"],
+        "urls": [
+            {"name": "📺 BBC Learning", "url": "https://www.youtube.com/@bbclearningenglish"},
+            {"name": "👩‍🏫 English with Lucy", "url": "https://www.youtube.com/@EnglishwithLucy"},
+            {"name": "🎓 EngVid", "url": "https://www.youtube.com/@engvidAdam"}
+        ],
         "tips": [
             "Сначала смотри без субтитров",
             "Затем с английскими субтитрами",
@@ -468,6 +478,11 @@ ENGLISH_DAILY_TASKS = {
         "exp": 20,
         "skills": ["listening"],
         "sources": ["6 Minute English", "TED Talks Daily", "Luke's English Podcast"],
+        "urls": [
+            {"name": "🎧 BBC 6 Min English", "url": "https://www.bbc.co.uk/learningenglish/english/features/6-minute-english"},
+            {"name": "💡 TED Talks", "url": "https://www.ted.com/talks"},
+            {"name": "🎙️ Luke's Podcast", "url": "https://teacherluke.co.uk/"}
+        ],
         "tips": [
             "Слушай в дороге",
             "Повторяй вслед за диктором",
@@ -480,6 +495,9 @@ ENGLISH_DAILY_TASKS = {
         "description": "Повторяй вслед за диктором видео (5-10 мин)",
         "exp": 20,
         "skills": ["speaking", "listening"],
+        "urls": [
+            {"name": "📺 YouTube", "url": "https://www.youtube.com/results?search_query=english+shadowing+practice"}
+        ],
         "tips": [
             "Копируй интонацию и ритм",
             "Записывай свой голос",
@@ -492,6 +510,9 @@ ENGLISH_DAILY_TASKS = {
         "description": "Опиши свой день или расскажи о планах вслух (3-5 мин)",
         "exp": 15,
         "skills": ["speaking"],
+        "urls": [
+            {"name": "🎯 Темы для разговора", "url": "https://www.thoughtco.com/esl-conversation-questions-1212839"}
+        ],
         "topics": [
             "Что ты сделал сегодня",
             "Твои планы на завтра",
@@ -519,6 +540,11 @@ ENGLISH_DAILY_TASKS = {
             "C1": "Literature, academic texts",
             "C2": "Classics, professional docs"
         },
+        "urls": [
+            {"name": "📚 Oxford Bookworms", "url": "https://elt.oup.com/catalogue/items/global/graded_readers/"},
+            {"name": "📖 Penguin Readers", "url": "https://www.penguinreaders.com/"},
+            {"name": "🌐 Project Gutenberg", "url": "https://www.gutenberg.org/"}
+        ],
         "tips": [
             "Не переводи каждое слово",
             "Догадывайся по контексту",
@@ -532,6 +558,11 @@ ENGLISH_DAILY_TASKS = {
         "exp": 15,
         "skills": ["reading", "vocabulary"],
         "sources": ["MangaPlus", "Webtoon", "Crunchyroll Manga"],
+        "urls": [
+            {"name": "📱 MangaPlus", "url": "https://mangaplus.shueisha.co.jp/"},
+            {"name": "🎨 Webtoon", "url": "https://www.webtoons.com/en/"},
+            {"name": "🍥 Crunchyroll Manga", "url": "https://www.crunchyroll.com/comics/manga"}
+        ],
         "tips": [
             "Начни с знакомых историй",
             "Обрати внимание на диалоги",
@@ -544,6 +575,10 @@ ENGLISH_DAILY_TASKS = {
         "description": "Напиши 3-5 предложений о своем дне",
         "exp": 15,
         "skills": ["writing"],
+        "urls": [
+            {"name": "📝 Grammarly (проверка)", "url": "https://www.grammarly.com/"},
+            {"name": "📚 Reverso", "url": "https://www.reverso.net/"}
+        ],
         "prompts": [
             "Today I...",
             "I feel... because...",
@@ -563,6 +598,11 @@ ENGLISH_DAILY_TASKS = {
         "exp": 20,
         "skills": ["writing", "grammar"],
         "sources": ["English Grammar in Use", "Perfect English Grammar", "Cambridge"],
+        "urls": [
+            {"name": "📘 Perfect English Grammar", "url": "https://www.perfect-english-grammar.com/"},
+            {"name": "🎯 English Grammar", "url": "https://www.english-grammar.at/"},
+            {"name": "📚 Cambridge Grammar", "url": "https://www.cambridge.org/gb/cambridgeenglish/catalog/grammar-vocabulary-and-pronunciation"}
+        ],
         "tips": [
             "Повторяй правило перед упражнением",
             "Проверь ответы",
@@ -575,6 +615,9 @@ ENGLISH_DAILY_TASKS = {
         "description": "Пройди дополнительный урок в Memrise",
         "exp": 10,
         "skills": ["vocabulary"],
+        "urls": [
+            {"name": "📱 Memrise App", "url": "https://www.memrise.com/app/"}
+        ],
         "tips": [
             "Повторяй сложные слова",
             "Используй Speed Review",

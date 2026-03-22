@@ -458,18 +458,31 @@ E → D → C → B → A → S
             if next_level:
                 english_text += f"\n\n{Emoji.CHART} <b>Прогресс до {next_level}:</b> {exp_progress}%"
             
-            # Создаем клавиатуру с заданиями
+            # Создаем клавиатуру с заданиями и ссылками
             keyboard_buttons = []
             for i, task_key in enumerate(daily_tasks, 1):
                 task_info = self.bot.english_service.get_task_info(task_key)
                 icon = task_info.get("icon", "📝")
                 name = task_info.get("name", "Задание")
                 exp = task_info.get("exp", 15)
+                urls = task_info.get("urls", [])
                 
+                # Кнопка выполнения задания
                 keyboard_buttons.append([InlineKeyboardButton(
                     text=f"{icon} {i}. {name} (+{exp} EXP)",
                     callback_data=f"english_task_{task_key}_{i}"
                 )])
+                
+                # Кнопки с URL (если есть)
+                if urls:
+                    url_buttons = []
+                    for url_item in urls[:2]:  # Максимум 2 ссылки в ряд
+                        url_buttons.append(InlineKeyboardButton(
+                            text=url_item.get("name", "🔗 Ссылка"),
+                            url=url_item.get("url", "https://google.com")
+                        ))
+                    if url_buttons:
+                        keyboard_buttons.append(url_buttons)
             
             # Добавляем кнопку теста
             if next_level:
@@ -550,6 +563,7 @@ E → D → C → B → A → S
             # Сбрасываем флаг ожидания
             self._waiting_weight_input[user_id] = False
             
+            from keyboards import KeyboardManager
             await message.answer(
                 f"{Emoji.SUCCESS} <b>Вес записан!</b>\n\n"
                 f"{Emoji.SCALE} Текущий вес: {weight} кг",
@@ -1174,18 +1188,29 @@ E → D → C → B → A → S
             
             text += f"{Emoji.FIRE} Отличная работа! Продолжай в том же духе!"
             
-            keyboard = InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [InlineKeyboardButton(
-                        text=f"{Emoji.BOOK} К английскому",
-                        callback_data="english_menu"
-                    )],
-                    [InlineKeyboardButton(
-                        text=f"{Emoji.CHART} Главное меню",
-                        callback_data="return_main_menu"
-                    )],
-                ]
-            )
+            # Добавляем ссылки на ресурсы
+            keyboard_buttons = [
+                [InlineKeyboardButton(
+                    text=f"{Emoji.BOOK} К английскому",
+                    callback_data="english_menu"
+                )],
+            ]
+            
+            # Добавляем ссылки на ресурсы задания
+            urls = task_info.get("urls", [])
+            if urls:
+                for url_item in urls[:2]:
+                    keyboard_buttons.append([InlineKeyboardButton(
+                        text=f"🔗 {url_item.get('name', 'Ссылка')}",
+                        url=url_item.get("url", "https://google.com")
+                    )])
+            
+            keyboard_buttons.append([InlineKeyboardButton(
+                text=f"{Emoji.CHART} Главное меню",
+                callback_data="return_main_menu"
+            )])
+            
+            keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
             
             await callback.message.answer(text, reply_markup=keyboard)
             await callback.answer(f"+{exp_reward} EXP")
