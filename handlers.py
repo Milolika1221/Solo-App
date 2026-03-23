@@ -12,6 +12,7 @@ HANDLERS LAYER - Слой обработчиков
 """
 
 import logging
+from datetime import date
 from aiogram import types, F
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -1047,6 +1048,21 @@ E → D → C → B → A → S
         try:
             user_id = callback.from_user.id
             
+            # Проверяем, не выполнена ли тренировка сегодня
+            workout_key = f"{universe}_{rank}"
+            cursor = self.bot.db.execute(
+                """
+                SELECT COUNT(*) FROM daily_quests 
+                WHERE user_id = ? AND title = ? AND date = ? AND type = 'workout'
+                """,
+                (user_id, workout_key, date.today())
+            )
+            already_completed = cursor.fetchone()[0] > 0
+            
+            if already_completed:
+                await callback.answer(f"{Emoji.COMPLETED} Эта тренировка уже выполнена сегодня!")
+                return
+            
             workout = self.bot.quest_service.get_workout(universe, rank)
             exp_reward = workout.get("exp", 20) if workout else 20
             universe_name = ANIME_UNIVERSES.get(universe, universe)
@@ -1055,6 +1071,16 @@ E → D → C → B → A → S
             new_level, level_up = self.bot.user_service.add_exp(
                 user_id, exp_reward, f"Тренировка {universe_name} {rank}-rank"
             )
+            
+            # Записываем выполнение тренировки в daily_quests
+            self.bot.db.execute(
+                """
+                INSERT INTO daily_quests (user_id, date, title, description, type, exp_reward, completed)
+                VALUES (?, ?, ?, ?, ?, ?, 1)
+                """,
+                (user_id, date.today(), workout_key, f"Тренировка {universe_name} {rank}-rank", "workout", exp_reward)
+            )
+            self.bot.db.commit()
             
             text = f"{Emoji.PARTY} <b>Тренировка завершена!</b>\n\n"
             text += f"{Emoji.SWORD} Вселенная: {universe_name}\n"
@@ -1099,8 +1125,34 @@ E → D → C → B → A → S
         Обработчик ухода за кожей (утро/вечер).
         """
         try:
+            user_id = callback.from_user.id
+            
+            # Проверяем, не выполнен ли уход за кожей сегодня
+            cursor = self.bot.db.execute(
+                """
+                SELECT COUNT(*) FROM daily_quests 
+                WHERE user_id = ? AND title = ? AND date = ? AND type = 'skincare'
+                """,
+                (user_id, f"skincare_{time_of_day}", date.today())
+            )
+            already_completed = cursor.fetchone()[0] > 0
+            
+            if already_completed:
+                await callback.answer(f"{Emoji.COMPLETED} Уход за кожей уже выполнен сегодня!")
+                return
+            
             # Начисляем EXP
             self.bot.user_service.add_exp(user_id, 5, f"Уход за кожей ({time_of_day})")
+            
+            # Записываем выполнение ухода за кожей в daily_quests
+            self.bot.db.execute(
+                """
+                INSERT INTO daily_quests (user_id, date, title, description, type, exp_reward, completed)
+                VALUES (?, ?, ?, ?, ?, ?, 1)
+                """,
+                (user_id, date.today(), f"skincare_{time_of_day}", f"Уход за кожей ({time_of_day})", "skincare", 5)
+            )
+            self.bot.db.commit()
             
             if time_of_day == "morning":
                 text = (
@@ -1152,6 +1204,20 @@ E → D → C → B → A → S
             task_number: Номер задания для отображения
         """
         try:
+            # Проверяем, не выполнено ли задание сегодня
+            cursor = self.bot.db.execute(
+                """
+                SELECT COUNT(*) FROM english_progress 
+                WHERE user_id = ? AND activity_type = ? AND date = ?
+                """,
+                (user_id, task_key, date.today())
+            )
+            already_completed = cursor.fetchone()[0] > 0
+            
+            if already_completed:
+                await callback.answer(f"{Emoji.COMPLETED} Это задание уже выполнено сегодня!")
+                return
+            
             # Получаем информацию о задании
             task_info = self.bot.english_service.get_task_info(task_key)
             exp_reward = task_info.get("exp", 15)
@@ -1173,7 +1239,7 @@ E → D → C → B → A → S
                 INSERT INTO english_progress (user_id, activity_type, amount, exp_gained, date)
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                (user_id, skills[0] if skills else "other", 1, exp_reward, date.today())
+                (user_id, task_key, 1, exp_reward, date.today())
             )
             self.bot.db.commit()
             
