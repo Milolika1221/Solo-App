@@ -1072,6 +1072,11 @@ E → D → C → B → A → S
                 user_id, exp_reward, f"Тренировка {universe_name} {rank}-rank"
             )
             
+            if new_level is None:
+                logger.error(f"Не удалось начислить EXP за тренировку пользователю {user_id}")
+                await callback.answer(f"{Emoji.ERROR} Ошибка начисления опыта")
+                return
+            
             # Записываем выполнение тренировки в daily_quests
             self.bot.db.execute(
                 """
@@ -1142,7 +1147,12 @@ E → D → C → B → A → S
                 return
             
             # Начисляем EXP
-            self.bot.user_service.add_exp(user_id, 5, f"Уход за кожей ({time_of_day})")
+            new_level, level_up = self.bot.user_service.add_exp(user_id, 5, f"Уход за кожей ({time_of_day})")
+            
+            if new_level is None:
+                logger.error(f"Не удалось начислить EXP за уход за кожей пользователю {user_id}")
+                await callback.answer(f"{Emoji.ERROR} Ошибка начисления опыта")
+                return
             
             # Записываем выполнение ухода за кожей в daily_quests
             self.bot.db.execute(
@@ -1220,6 +1230,11 @@ E → D → C → B → A → S
             
             # Получаем информацию о задании
             task_info = self.bot.english_service.get_task_info(task_key)
+            if not task_info:
+                logger.error(f"Задание не найдено: {task_key}")
+                await callback.answer(f"{Emoji.ERROR} Задание не найдено")
+                return
+                
             exp_reward = task_info.get("exp", 15)
             task_name = task_info.get("name", "Задание")
             icon = task_info.get("icon", "📝")
@@ -1230,8 +1245,15 @@ E → D → C → B → A → S
                 user_id, exp_reward, f"Английский: {task_name}"
             )
             
+            if new_level is None:
+                logger.error(f"Не удалось начислить EXP пользователю {user_id}")
+                await callback.answer(f"{Emoji.ERROR} Ошибка начисления опыта")
+                return
+            
             # Начисляем опыт по английскому
-            self.bot.english_service.add_english_exp(user_id, exp_reward)
+            english_success = self.bot.english_service.add_english_exp(user_id, exp_reward)
+            if not english_success:
+                logger.error(f"Не удалось начислить английский EXP пользователю {user_id}")
             
             # Записываем прогресс в базу данных
             self.bot.db.execute(
