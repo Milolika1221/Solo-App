@@ -178,6 +178,53 @@ class KeyboardManager:
         return keyboard
     
     @staticmethod
+    def get_skin_type_keyboard() -> InlineKeyboardMarkup:
+        """
+        Создает клавиатуру выбора типа кожи (Inline).
+        
+        Варианты:
+        - Жирная
+        - Сухая
+        - Комбинированная
+        - Нормальная
+        - Проблемная (акне)
+        
+        Returns:
+            InlineKeyboardMarkup: Клавиатура выбора типа кожи
+        """
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="💧 Жирная",
+                        callback_data="reg_skin_oily"
+                    ),
+                    InlineKeyboardButton(
+                        text="🏜️ Сухая",
+                        callback_data="reg_skin_dry"
+                    ),
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="⚖️ Комбинированная",
+                        callback_data="reg_skin_combination"
+                    ),
+                    InlineKeyboardButton(
+                        text="✨ Нормальная",
+                        callback_data="reg_skin_normal"
+                    ),
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="⚠️ Проблемная (акне)",
+                        callback_data="reg_skin_acne"
+                    ),
+                ],
+            ]
+        )
+        return keyboard
+    
+    @staticmethod
     def get_quest_categories_keyboard() -> InlineKeyboardMarkup:
         """
         Клавиатура категорий квестов.
@@ -235,6 +282,65 @@ class KeyboardManager:
                     InlineKeyboardButton(
                         text=f"{Emoji.RUNNER} Wind Breaker",
                         callback_data="workout_universe_wind"
+                    ),
+                ],
+            ]
+        )
+        return keyboard
+    
+    @staticmethod
+    def get_english_level_keyboard() -> InlineKeyboardMarkup:
+        """
+        Создает клавиатуру выбора уровня английского (Inline).
+        
+        Варианты:
+        - A0 (Beginner)
+        - A1 (Elementary) 
+        - A2 (Pre-Intermediate)
+        - B1 (Intermediate)
+        - B2 (Upper-Intermediate)
+        - C1 (Advanced)
+        - C2 (Proficient)
+        
+        Returns:
+            InlineKeyboardMarkup: Клавиатура выбора уровня английского
+        """
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="🌱 A0 (Beginner)",
+                        callback_data="reg_english_a0"
+                    ),
+                    InlineKeyboardButton(
+                        text="🌿 A1 (Elementary)",
+                        callback_data="reg_english_a1"
+                    ),
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="🌳 A2 (Pre-Intermediate)",
+                        callback_data="reg_english_a2"
+                    ),
+                    InlineKeyboardButton(
+                        text="🌲 B1 (Intermediate)",
+                        callback_data="reg_english_b1"
+                    ),
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="🏔️ B2 (Upper-Intermediate)",
+                        callback_data="reg_english_b2"
+                    ),
+                    InlineKeyboardButton(
+                        text="🏔️ C1 (Advanced)",
+                        callback_data="reg_english_c1"
+                    ),
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="🏔️ C2 (Proficient)",
+                        callback_data="reg_english_c2"
                     ),
                 ],
             ]

@@ -17,6 +17,7 @@ from aiogram import types, F
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from constants import Emoji, MESSAGES, ANIME_UNIVERSES
+from keyboards import KeyboardManager
 
 logger = logging.getLogger(__name__)
 
@@ -651,8 +652,14 @@ E → D → C → B → A → S
             # Английский
             if action.startswith("english_task_"):
                 parts = action.split("_")
-                task_key = parts[2]
-                task_number = parts[3] if len(parts) > 3 else "1"
+                # Формат: english_task_{task_key}_{task_number}
+                # task_key может содержать подчеркивания, поэтому ищем последние 2 части
+                if len(parts) >= 4:
+                    task_number = parts[-1]
+                    task_key = "_".join(parts[2:-1])
+                else:
+                    task_key = parts[2] if len(parts) > 2 else ""
+                    task_number = "1"
                 await self.complete_english_task(callback, user_id, task_key, task_number)
                 return
             
@@ -803,13 +810,58 @@ E → D → C → B → A → S
                 (gender, user_id)
             )
             
+            # Показываем выбор типа кожи
+            keyboard = KeyboardManager.get_skin_type_keyboard()
+            await callback.message.answer(
+                f"{Emoji.SUCCESS} <b>Пол выбран!</b>\n\n"
+                f"Теперь выбери тип кожи для персонализации ухода:",
+                reply_markup=keyboard
+            )
+            await callback.answer()
+            return
+        
+        # Выбор типа кожи
+        if action.startswith("reg_skin_"):
+            skin_map = {
+                "oily": "жирная",
+                "dry": "сухая",
+                "combination": "комбинированная",
+                "normal": "нормальная",
+                "acne": "проблемная"
+            }
+            skin_type = skin_map.get(action.split("_")[2], "комбинированная")
+            
+            self.bot.db.execute(
+                "UPDATE users SET skin_type = ? WHERE user_id = ?",
+                (skin_type, user_id)
+            )
+            
+            # Показываем выбор уровня английского
+            keyboard = KeyboardManager.get_english_level_keyboard()
+            await callback.message.answer(
+                f"{Emoji.SUCCESS} <b>Тип кожи: {skin_type.capitalize()}</b>\n\n"
+                f"Теперь выбери уровень английского:",
+                reply_markup=keyboard
+            )
+            await callback.answer()
+            return
+        
+        # Выбор уровня английского
+        if action.startswith("reg_english_"):
+            level = action.split("_")[2].upper()
+            
+            # Получаем текущую вселенную пользователя
+            cursor = self.bot.db.execute("SELECT anime_universe FROM users WHERE user_id = ?", (user_id,))
+            result = cursor.fetchone()
+            universe = result[0] if result else "Solo Leveling"
+            
             # Завершаем регистрацию
             self.bot.db.execute("""
                 UPDATE users 
-                SET english_level = 'A0',
+                SET english_level = ?,
                     registration_completed = 1
                 WHERE user_id = ?
-            """, (user_id,))
+            """, (level, user_id))
             
             self.bot.db.commit()
             
@@ -818,8 +870,8 @@ E → D → C → B → A → S
             
             await callback.message.answer(
                 f"{Emoji.PARTY} <b>Поздравляем, регистрация завершена!</b>\n\n"
-                f"{Emoji.BOOK} Английский: A0\n"
-                f"{Emoji.SWORD} Вселенная: Solo Leveling\n"
+                f"{Emoji.BOOK} Английский: {level}\n"
+                f"{Emoji.SWORD} Вселенная: {universe}\n"
                 f"{Emoji.GIFT} Бонус: +50 EXP",
                 reply_markup=KeyboardManager.get_main_keyboard()
             )
